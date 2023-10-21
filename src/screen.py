@@ -6,6 +6,7 @@ from PyQt5 import QtGui, uic
 from PyQt5.QtCore import Qt, QPoint, QRect
 import sys
 from ocr import Capture
+from translate import translate_text
 
 class ScreenShot(QMainWindow):
     def __init__(self):
@@ -70,6 +71,7 @@ class ScreenShot(QMainWindow):
     def mousePressEvent(self, event):
         self.oldPos = event.globalPos() #get current mouse position on global desktop area
         self.mousePos = event.pos() #get current mouse position on application area
+        self.resizeFunc = None
 
         #these if statement check if the pressed mouse in the specific location (central area or left/right/top/bottom edge), also responsive with the window size that will be changed
         if (event.pos() in self.rect().adjusted(self.cornerw,self.cornerw,-self.cornerw,-self.cornerw)):
@@ -80,13 +82,12 @@ class ScreenShot(QMainWindow):
 
         if (event.pos() in self.rightGrip.rect().adjusted(self.rect().width() - self.cornerw, self.cornerw, self.rect().width() - self.cornerw, 0)):
             self.resizeFunc = self.resizeRight
-
         if (event.pos() in self.topGrip.rect().adjusted(self.cornerw,0,self.cornerw,0)):
             self.resizeFunc = self.resizeTop
 
         if (event.pos() in self.bottomGrip.rect().adjusted(self.cornerw,self.rect().height()-self.cornerw,self.cornerw,self.rect().height()-self.cornerw)):
-            self.resizeFunc = self.resizeBottom
-        print(self.resizeFunc == self.moveWin)
+            self.resizeFunc = self.resizeBottom  
+
         
         
     
@@ -111,6 +112,7 @@ class ScreenShot(QMainWindow):
     def mouseReleaseEvent(self, event):
         self.mousePos = None
         self.globalPos = None
+        self.resizeFunc = None
 
     def moveWin(self, delta):
         self.move(self.x() + delta.x(), self.y() + delta.y())
@@ -181,7 +183,9 @@ class TextScreen(QMainWindow):
     def setText(self):
         capture = Capture()
         jpText = capture.getText()
+        tlTxt = translate_text(jpText, "en")
         self.jpTxt.setText(jpText)
+        self.tlTxt.setText(tlTxt)
         # self.tlText.setText(tlText)
 
     
