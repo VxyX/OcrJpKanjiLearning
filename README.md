@@ -1,4 +1,4 @@
-# OcrJpKanjiLearning
+# Ocr Jp Kanji Learning (25% - Not Usable)
 Aplikasi OCR Translator untuk Bahasa Jepang - Indonesia/Inggris dilengkapi dengan 
 - jparser MeCab untuk analisis kata asli dari konjugasi kata,
 - kamus Jisho untuk melihat detail kosakata maupun kanji,
