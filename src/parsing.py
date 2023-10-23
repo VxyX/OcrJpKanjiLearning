@@ -39,8 +39,8 @@ class Parse():
             if (values == ['EOS']):
                 continue
             data.append(values)
-        print(data)
-
+        # print(data)
+        # exit()
         # inisialisasi sebelum dilakukan parsing
         conj = False
         # dataiter = iter(data)
@@ -49,17 +49,30 @@ class Parse():
         kelompokKataKerja = []
         inputKata = False
         kata = ''
-        kataasli = ''
+        katadasar = []
+        kataasli = []
         skip = False
 
         for i in range(len(data)):
             # if skip:
             #     skip = False
             #     continue
+
+            # cek apakah terdapat kanji 
+            kanji = data[i][0]
+            kanjilist = list(kanji)
+            for char in kanjilist:
+                kanjiCode = ord(char)
+                if (kanjiCode > 0x4e00 and kanjiCode <= 0x9fff):
+                    temp = [data[i][0], data[i][1]]
+                    kataasli = temp
+                    break
+
+            # cek tipe kelompok kata kerja
             if (data[i][5]):
                 kelompokKataKerja.append(data[i][5])
                 if ("動詞-一般" in data[i][4]):
-                    kataasli = data[i][3]
+                    katadasar = [data[i][3], data[i][2]]
 
 
             if ('サ変可能' in data[i][4]):
@@ -155,20 +168,26 @@ class Parse():
             
             # print(conjVerb, inputkata, kata)
             if inputKata:
-                temp = kata
+                temp = [kata, [], [], []]
                 if kataasli:
-                    temp = [temp, kataasli]
+                    temp[1] = kataasli
+                if katadasar:
+                    temp[2] = katadasar
                 if kelompokKataKerja:
-                    temp = [temp, kelompokKataKerja]
+                    temp[3] = kelompokKataKerja
                 kelompokKata.append(temp)
                 kata = ''
-                kataasli = ''
+                kataasli = []
+                katadasar = []
                 kelompokKataKerja = []
         #############END FOR LOOP#####################
-
-        pprint(kelompokKata)
+        # data/kelompokKata -> kata_parser -> [kata_parser, [kata_asli, cara baca], [kata_dasar, cara baca], [tipe konjugasi(dapat lebih dari 1)]]
+        # pprint(kelompokKata)
         return kelompokKata
     
 if (__name__ == "__main__"):
     parse = Parse()
-    parse.jpParse1("自分の両親をこんな風にを扱うなんて、彼は気が狂っているに違いない。")
+    a = parse.jpParse1("自分の両親をこんな風にを扱うなんて、彼は気が狂っているに違いない。")
+    for x in a:
+        if x[1]:
+            print(x[1]) 

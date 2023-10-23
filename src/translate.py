@@ -12,4 +12,4 @@ def translate_text(text, target_lang):
 
 text_to_translate = "【原神】 原神においてフレームレートはめっちゃ大事"
 translated_text_en = translate_text(text_to_translate, "en")
-print(f'Translated to English: {translated_text_en}')
+# print(f'Translated to English: {translated_text_en}')

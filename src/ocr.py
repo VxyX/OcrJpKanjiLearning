@@ -2,13 +2,15 @@ import pytesseract
 from PIL import Image
 
 class Capture():
-    def __init__(self):
+    def __init__(self, image):
         
         # menentukan path tesseract
         self.tesseract_path = r'D:\\Program Files\\Tesseract\\tesseract.exe'
         pytesseract.pytesseract.tesseract_cmd = self.tesseract_path
-
-        self.img = r'screenshot.png'
+        if image:
+            self.img = image
+        else:
+            self.img = r'screenshot.png'
 
         pass
     
