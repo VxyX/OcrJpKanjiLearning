@@ -9,8 +9,8 @@ tesseract_path = r'D:\\Program Files\\Tesseract\\tesseract.exe'
 pytesseract.pytesseract.tesseract_cmd = tesseract_path
 
 # jp dictionary for MeCab
-unidic = r'D:\\Bakup\\Materi\\Semester9\\Skripsi\\program\\ocrjplearning\\dic\\unidic'
-ipadic = r'D:\\Bakup\\Materi\\Semester9\\Skripsi\\program\\ocrjplearning\\dic\\ipadic'
+unidic = r'D:\\Bakup\\Materi\\Semester9\\Skripsi\\program\\orcjplearning\\dic\\unidic'
+ipadic = r'D:\\Bakup\\Materi\\Semester9\\Skripsi\\program\\orcjplearning\\dic\\ipadic'
 
 tagger = MeCab.Tagger(f"-d {unidic}")
 
@@ -24,14 +24,14 @@ tagger = MeCab.Tagger(f"-d {unidic}")
 # text = "アパートの壁が薄いので、隣の部屋の人のいびきまで聞こえてきて、気になって眠れない。"
 # text = "私の両親は、田舎で農業を営んでいる"
 # text = "聞こえる.聞こえない.聞こえます.聞こえません.聞こえた.聞こえなかった.聞こえました.聞こえませんでした.聞こえて.聞こえなくて.聞こえられる.聞こえられない.聞こえさせる.聞こえさせない.聞こえさせられる.聞こえさせられない.聞こえろ.聞こえるな"
-text = "聞えるんだよ"
+text = "原神においてフレームレートはめっちゃ大事"
 
 
 image = Image.open('screenshot_340.png')
 lang = 'jpn'
 
 # Terapkan OCR pada gambar menggunakan pytesseract
-text = pytesseract.image_to_string(image, lang)
+# text = pytesseract.image_to_string(image, lang)
 
 # text = text.split()
 # text = text[2]

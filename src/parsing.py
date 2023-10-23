@@ -3,17 +3,18 @@ import sqlite3
 import sys
 import pytesseract
 from PIL import Image
+from pprint import pprint
 
 class Parse():
     def __init__(self):
         # jp dictionary for MeCab
-        self.unidic = r'D:\\Bakup\\Materi\\Semester9\\Skripsi\\program\\ocrjplearning\\dic\\unidic'
-        self.ipadic = r'D:\\Bakup\\Materi\\Semester9\\Skripsi\\program\\ocrjplearning\\dic\\ipadic'
+        self.unidic = r'D:\\Bakup\\Materi\\Semester9\\Skripsi\\program\\orcjplearning\\dic\\unidic'
+        self.ipadic = r'D:\\Bakup\\Materi\\Semester9\\Skripsi\\program\\orcjplearning\\dic\\ipadic'
 
         self.tagger = MeCab.Tagger(f"-d {self.unidic}")
         pass
     
-    def jpParse1(self):
+    def jpParse1(self, text):
         # testing beberapa kalimat
         # text = "行ってきましたか"
         # text = "あんたと話しました。なぜこんな風にかしら"
@@ -24,7 +25,8 @@ class Parse():
         # text = "アパートの壁が薄いので、隣の部屋の人のいびきまで聞こえてきて、気になって眠れない。"
         # text = "私の両親は、田舎で農業を営んでいる"
         # text = "聞こえる.聞こえない.聞こえます.聞こえません.聞こえた.聞こえなかった.聞こえました.聞こえませんでした.聞こえて.聞こえなくて.聞こえられる.聞こえられない.聞こえさせる.聞こえさせない.聞こえさせられる.聞こえさせられない.聞こえろ.聞こえるな"
-        text = "聞えるんだよ"
+        # text = "聞えるんだよ"
+        # text = text
 
         result = self.tagger.parse(text) #or parseNBest(n, text)
         result = result.splitlines() #splitLines untuk pengelompokan tabel berdasarkan kata yang displit MeCab
@@ -47,6 +49,7 @@ class Parse():
         kelompokKataKerja = []
         inputKata = False
         kata = ''
+        kataasli = ''
         skip = False
 
         for i in range(len(data)):
@@ -55,6 +58,9 @@ class Parse():
             #     continue
             if (data[i][5]):
                 kelompokKataKerja.append(data[i][5])
+                if ("動詞-一般" in data[i][4]):
+                    kataasli = data[i][3]
+
 
             if ('サ変可能' in data[i][4]):
                 # conjVerb = True
@@ -150,12 +156,19 @@ class Parse():
             # print(conjVerb, inputkata, kata)
             if inputKata:
                 temp = kata
+                if kataasli:
+                    temp = [temp, kataasli]
                 if kelompokKataKerja:
-                    temp = [kata, kelompokKataKerja]
+                    temp = [temp, kelompokKataKerja]
                 kelompokKata.append(temp)
                 kata = ''
+                kataasli = ''
                 kelompokKataKerja = []
         #############END FOR LOOP#####################
 
-        print(kelompokKata)
+        pprint(kelompokKata)
         return kelompokKata
+    
+if (__name__ == "__main__"):
+    parse = Parse()
+    parse.jpParse1("自分の両親をこんな風にを扱うなんて、彼は気が狂っているに違いない。")

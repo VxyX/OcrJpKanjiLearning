@@ -1,35 +1,20 @@
-import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QLabel, QWidget, QHBoxLayout, QGridLayout
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QUrl
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWidgets import QApplication, QMainWindow
+import os
 
-class MyWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
+app = QApplication([])
 
-        central_widget = QWidget()
-        layout = QVBoxLayout()
+# Inisialisasi window
+window = QMainWindow()
+window.setGeometry(100, 100, 800, 600)
 
-        # Text yang ingin ditampilkan
-        text = "In publishing and graphic design, Lorem ipsum is a placeholder text commonly used to demonstrate the visual form of a document or a typeface without relying on meaningful content. Lorem ipsum may be used as a placeholder before final copy is available."
+# Menampilkan QWebEngineView di dalam window
+print(os.getcwd())
+view = QWebEngineView(window)
+view.setUrl(QUrl.fromLocalFile('/src/teshtml.html'))
+window.setCentralWidget(view)
 
-        # Pisahkan kata-kata
-        words = text.split()
+window.show()
 
-        # Buat layout horizontal untuk menampilkan QLabel
-        h_layout = QGridLayout()
-
-        for word in words:
-            label = QLabel(word)
-            h_layout.addWidget(label)
-
-        # Tambahkan layout horizontal ke layout utama
-        layout.addLayout(h_layout)
-
-        central_widget.setLayout(layout)
-        self.setCentralWidget(central_widget)
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = MyWindow()
-    window.show()
-    sys.exit(app.exec_())
+app.exec_()

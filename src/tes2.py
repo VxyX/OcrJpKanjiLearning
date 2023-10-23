@@ -6,6 +6,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 import io
 from svg.path import parse_path
+from pprint import pprint
 
 cwd = os.getcwd()  # Get the current working directory (cwd)
 files = os.listdir(cwd)  # Get all the files in that directory
@@ -16,9 +17,17 @@ print("Files in %r: %s" % (cwd, files))
 def search_jisho(word):
     url = f"https://jisho.org/api/v1/search/words?keyword={word}"
     response = requests.get(url)
-    
+    # http://jisho.org/api/v1/search/words?keyword=%23jlpt-n5
+    # What i need...
+    # japanese word kanji (data->[0-?]->[japanese]->[0]->[word])
+    # japanese word reading hiragana (data->[0-?]->[japanese]->[0]->[reading])
+    # jlpt level (data->[0-?]->[jlpt]->[])
+    # word type/part of speech/kelas kata (data->sense->[0-?]->part_of_speech->[])
+    # meanings (data->sense->[0-?]->english_definitions->[])
+
     if response.status_code == 200:
         data = response.json()
+        pprint(data["data"][0])
         if data["meta"]["status"] == 200 and data["data"]:
             # Ambil data pertama (paling relevan)
             result = data["data"][0]
@@ -113,13 +122,15 @@ def buat_gambar_svg_dinamis(path_data):
 
 
 # Contoh penggunaan:
-search_word = "猫"  # Kata yang ingin dicari di Jisho
+search_word = "原神"  # Kata yang ingin dicari di Jisho
 kanji_character = "猫"  # Kanji yang ingin dicari stroke ordernya di KanjiVG
-strokes = get_kanjivg_data(search_word)
+# strokes = get_kanjivg_data(search_word)
 # print(type(strokes[0]))
-buat_gambar_svg_dinamis(strokes)
+# buat_gambar_svg_dinamis(strokes)
+
 # Cari makna kata di Jisho
-# japanese_word, meanings = search_jisho(search_word)
-# print(f"Makna kata {japanese_word}: {', '.join(meanings)}")
+japanese_word, meanings = search_jisho(search_word)
+print(meanings)
+print(f"Makna kata {japanese_word}: {', '.join(meanings)}")
 
 # Dapatkan data stroke order dari KanjiVG

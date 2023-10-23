@@ -23,12 +23,9 @@
 .QScrollBar {height:0px;}</string>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
-    <item>
-     <widget class="QTextBrowser" name="jpTxt"/>
-    </item>
-    <item>
-     <widget class="QTextBrowser" name="tlTxt"/>
-    </item>
+    <property name="spacing">
+     <number>0</number>
+    </property>
    </layout>
   </widget>
  </widget>

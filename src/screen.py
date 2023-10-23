@@ -5,8 +5,10 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QGraphicsOpacity
 from PyQt5 import QtGui, uic
 from PyQt5.QtCore import Qt, QPoint, QRect
 import sys
-from ocr import Capture
-from translate import translate_text
+
+from txtscreen import TextScreen
+
+from pprint import pprint
 
 class ScreenShot(QMainWindow):
     def __init__(self):
@@ -167,30 +169,9 @@ class ScreenShot(QMainWindow):
     
     def closeScreen(self):
         self.close()
-        self.textScreen.close()
-
-class TextScreen(QMainWindow):
-    def __init__(self):
-        super(TextScreen, self).__init__()
-
-        # load .ui file
-        uic.loadUi("src/gui/textScreen.ui", self)
-        
-
-    def labelklik(self):
-        print('atas')
-
-    def setText(self):
-        capture = Capture()
-        jpText = capture.getText()
-        tlTxt = translate_text(jpText, "en")
-        self.jpTxt.setText(jpText)
-        self.tlTxt.setText(tlTxt)
-        # self.tlText.setText(tlText)
-
+        self.textScreen.close()    
     
-    
-    
+   
 if (__name__ == "__main__"):
     app = QApplication(sys.argv)
     screen = ScreenShot()
