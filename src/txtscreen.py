@@ -15,14 +15,18 @@ class TextScreen(QMainWindow):
     def __init__(self):
         super(TextScreen, self).__init__()
 
-        self.jpHtml = 'src/teshtml.html'
-        self.tlHtml = 'src/teshtml2.html'
-        # load .ui file
+        self.jpHtml = 'src/html/jpText.html'
+        self.tlHtml = 'src/html/tlText.html'
+
+        # load file
         uic.loadUi("src/gui/textScreen.ui", self)
         with open(self.jpHtml, "r", encoding='utf-8') as file:
             self.jpTxt = BeautifulSoup(file, "html.parser")
         with open(self.tlHtml, "r", encoding='utf-8') as file:
             self.tlTxt = BeautifulSoup(file, "html.parser")
+
+        self.jpBody = self.jpTxt.find('body')
+        self.tlBody = self.tlTxt.find('body')
 
         viewJp = QWebEngineView(self)
         viewTl = QWebEngineView(self)
@@ -30,9 +34,7 @@ class TextScreen(QMainWindow):
         self.verticalLayout.addWidget(viewTl)
         viewJp.setUrl(QUrl.fromLocalFile('/src/teshtml.html'))
         viewTl.setUrl(QUrl.fromLocalFile('/src/teshtml2.html'))
-        # self.parse = Parse()
         
-        self.txtProcessing()
         self.show()
         
 
@@ -45,8 +47,8 @@ class TextScreen(QMainWindow):
         if jenis_huruf == 'katakana':
             return txt
         
-        for character in txt:
-            katakana_code = ord(character)
+        for char in txt:
+            katakana_code = ord(char)
             if jenis_huruf == 'hiragana':
                 # Periksa apakah karakter adalah katakana
                 if 0x30A1 <= katakana_code <= 0x30F6:
@@ -56,7 +58,7 @@ class TextScreen(QMainWindow):
                     new_txt += hiragana_character
                 else:
                     # Jika bukan karakter katakana, tambahkan karakter aslinya
-                    new_txt += character
+                    new_txt += char
             
 
         return new_txt
@@ -110,20 +112,22 @@ class TextScreen(QMainWindow):
         self.setText(jpParagraph, tlParagraph)
 
     def setText(self, jpTxt, tlTxt):
-        jpBody = self.jpTxt.find('body')
-        tlBody = self.tlTxt.find('body')
-        jpBody.string = ''
-        tlBody.string = ''
-        jpBody.append(jpTxt)
-        tlBody.append(tlTxt) 
+        self.jpBody.string = ''
+        self.tlBody.string = ''
+        self.jpBody.append(jpTxt)
+        self.tlBody.append(tlTxt) 
+        self.saveTxt()
 
+    def clearTxt(self):
+        self.jpBody.string = ''
+        self.tlBody.string = ''
+        self.saveTxt()
+
+    def saveTxt(self):
         with open(self.jpHtml, 'w', encoding='utf-8') as file:
             file.write(str(self.jpTxt))
         with open(self.tlHtml, 'w', encoding='utf-8') as file:
             file.write(str(self.tlTxt))
-        # self.jpTxt.setHtml("<html><body><ruby>漢<rp>(</rp><rt>かん</rt><rp>)</rp>字<rp>(</rp><rt>じ</rt><rp>)</rp></ruby></body></html>")
-        # self.tlText.setText(tlTxt)
-        pass
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

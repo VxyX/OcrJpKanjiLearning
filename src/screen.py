@@ -168,6 +168,7 @@ class ScreenShot(QMainWindow):
         self.textScreen.setText()
     
     def closeScreen(self):
+        self.textScreen.clearTxt()
         self.close()
         self.textScreen.close()    
     
