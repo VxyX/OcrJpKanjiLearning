@@ -1,0 +1,35 @@
+
+#cornerGripLB{border-left: 2px solid rgb(181, 104, 220); border-bottom:2px solid rgb(181, 104, 220);}
+#cornerGripLT{border-left:2px solid rgb(181, 104, 220); border-top:2px solid rgb(181, 104, 220);}
+#cornerGripRB{border-right:2px solid rgb(181, 104, 220); border-bottom:2px solid rgb(181, 104, 220);}
+#cornerGripRT{border-right:2px solid rgb(181, 104, 220); border-top:2px solid rgb(181, 104, 220);}
+
+#bottomGrip{border-bottom:1px dashed rgb(181, 104, 220);}
+#leftGrip{border-left:1px dashed rgb(181, 104, 220);}
+#topGrip{border-top:1px dashed rgb(181, 104, 220);}
+#rightGrip{border-right:1px dashed rgb(181, 104, 220);}
+
+
+#centralwidget {
+	background-color: rgba(145, 14, 227, 0.01);
+}
+
+#innerwidget {
+	background-color: transparent;
+}
+
+.QPushButton{
+    border-radius: 5px;
+	height: 24px;
+	width: 80px;
+	background-color: rgba(145, 14, 227, 100);
+}
+
+.QPushButton:hover{
+	background-color: rgba(204, 76, 255, 255);
+}
+
+.QPushButton:pressed{
+	background-color: rgba(145, 14, 227, 255);
+	color: white;
+}

@@ -28,12 +28,14 @@ class TextScreen(QMainWindow):
         self.jpBody = self.jpTxt.find('body')
         self.tlBody = self.tlTxt.find('body')
 
-        viewJp = QWebEngineView(self)
-        viewTl = QWebEngineView(self)
-        self.verticalLayout.addWidget(viewJp)
-        self.verticalLayout.addWidget(viewTl)
-        viewJp.setUrl(QUrl.fromLocalFile('/src/teshtml.html'))
-        viewTl.setUrl(QUrl.fromLocalFile('/src/teshtml2.html'))
+        self.viewJp = QWebEngineView(self)
+        self.viewTl = QWebEngineView(self)
+        self.verticalLayout.addWidget(self.viewJp)
+        self.verticalLayout.addWidget(self.viewTl)
+        self.viewJp.setUrl(QUrl.fromLocalFile('/'+self.jpHtml))
+        self.viewTl.setUrl(QUrl.fromLocalFile('/'+self.tlHtml))
+
+        self.clearTxt()
         
         self.show()
         
@@ -65,7 +67,7 @@ class TextScreen(QMainWindow):
         pass
 
     def txtProcessing(self):
-        capture = Capture('Screenshot_340.png')
+        capture = Capture('screenshot.png')
         parse = Parse()
         
         jpParagraph = self.jpTxt.new_tag('p')
@@ -73,10 +75,14 @@ class TextScreen(QMainWindow):
         kanji = ''
         first_part = ''
         second_part = ''
+        ruby = ''
 
         jpText = capture.getText()
         jpText = jpText.replace('\n','')
         jpParseTxt = parse.jpParse1(jpText)
+
+        pprint(jpParseTxt)
+        print()
 
         for word in jpParseTxt:
             kanji = word[0]
@@ -95,13 +101,14 @@ class TextScreen(QMainWindow):
                 rt.append(self.furigana(word[1][1], 'hiragana'))
                 ruby.append(rt)
 
-            if first_part or second_part:
+            if first_part or second_part or ruby:
                 if first_part:
                     jpParagraph.append(first_part)
                 if ruby:
                     jpParagraph.append(ruby)
                 if second_part:
                     jpParagraph.append(second_part)
+                ruby = ''
                 first_part = ''
                 second_part = ''
             else:
@@ -129,7 +136,11 @@ class TextScreen(QMainWindow):
         with open(self.tlHtml, 'w', encoding='utf-8') as file:
             file.write(str(self.tlTxt))
 
+        self.viewJp.setUrl(QUrl.fromLocalFile('/'+self.jpHtml))
+        self.viewTl.setUrl(QUrl.fromLocalFile('/'+self.tlHtml))
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     screen = TextScreen()
+    screen.txtProcessing()
     app.exec_()

@@ -14,19 +14,26 @@ class ScreenShot(QMainWindow):
     def __init__(self):
         super(ScreenShot, self).__init__()
 
-        # load .ui file
-        uic.loadUi("src/gui/screenCapture.ui", self)
+        # load file
+        self.uifile = "src/gui/screenCapture copy.ui"
+        self.stylefile = "src/style/screenshot.qss"
+
+        uic.loadUi(self.uifile, self)
+        with open(self.stylefile,"r") as fh:
+            self.setStyleSheet(fh.read())
+
         self.textScreen = TextScreen()
 
         # set transparancy
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowFlags(Qt.FramelessWindowHint)
-        self.setWinOpacity = 0.5
-        # self.setWindowOpacity(self.setWinOpacity)
-        op=QGraphicsOpacityEffect(self.centralwidget)
-        op.setOpacity(0.80) #0 to 1 will cause the fade effect to kick in
-        self.centralwidget.setGraphicsEffect(op)
-        self.centralwidget.setAutoFillBackground(True)
+        self.setWinOpacity = 1
+        self.setWindowOpacity(self.setWinOpacity)
+        self.takingss = False
+        # self.op=QGraphicsOpacityEffect(self.centralwidget)
+        # self.op.setOpacity(self.setWinOpacity)
+        # self.centralwidget.setGraphicsEffect(self.op)
+        # self.centralwidget.setAutoFillBackground(True)
 
         # set grip
         self.leftGrip.setCursor(Qt.SizeHorCursor)
@@ -43,11 +50,11 @@ class ScreenShot(QMainWindow):
         self.show()
         self.textScreen.show()
 
-        # self.adjustGripSize(16)
+        self.adjustGripSize(16)
         # print(self.rect())
         self.resizeFunc = None
         self.getCornerCoor()
-        print(self.geometry().bottom())
+        # print(self.geometry().bottom())
 
     def getCornerCoor(self):
         # get widget coor
@@ -143,29 +150,34 @@ class ScreenShot(QMainWindow):
         self.resize(self.width(), height)
 
     def screenshot(self):
-        # Set window Opacity to 0 to get clean screenshot
-        self.setWindowOpacity(0)
+        if not self.takingss:
+            self.takingss = True
+            # Set window Opacity to 0 to get clean screenshot
+            self.setWindowOpacity(0)
 
-        # Get the geometry (position and size) of your window
-        window_geometry = self.geometry()
-        x, y, width, height = window_geometry.x(), window_geometry.y(), window_geometry.width(), window_geometry.height()
+            # Get the geometry (position and size) of your window
+            window_geometry = self.geometry()
+            x, y, width, height = window_geometry.x(), window_geometry.y(), window_geometry.width(), window_geometry.height()
 
-        # Delay (just in case)
-        time.sleep(0.3)
+            # Delay (just in case)
+            time.sleep(0.3)
 
-        # Capture gambar menggunakan pyautogui
-        screenshot = pyautogui.screenshot(region=(x, y, width, height))
+            # Capture gambar menggunakan pyautogui
+            screenshot = pyautogui.screenshot(region=(x, y, width, height))
 
-        # Save gambar menjadi file
-        screenshot.save("screenshot.png")
+            # Save gambar menjadi file
+            screenshot.save("screenshot.png")
 
-        # Mengembalikan opacity semula
-        self.setWindowOpacity(self.setWinOpacity)
+            # Mengembalikan opacity semula
+            # self.setWindowOpacity(self.setWinOpacity)
+            self.setWindowOpacity(self.setWinOpacity)
 
-        # Delay (just in case)
-        time.sleep(0.3)
+            # Delay (just in case)
+            time.sleep(0.6)
 
-        self.textScreen.setText()
+            self.textScreen.txtProcessing()
+
+            self.takingss = False
     
     def closeScreen(self):
         self.textScreen.clearTxt()
