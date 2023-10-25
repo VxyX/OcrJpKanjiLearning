@@ -50,7 +50,7 @@ class ScreenShot(QMainWindow):
         self.show()
         self.textScreen.show()
 
-        self.adjustGripSize(16)
+        self.adjustGripSize(10)
         # print(self.rect())
         self.resizeFunc = None
         self.getCornerCoor()

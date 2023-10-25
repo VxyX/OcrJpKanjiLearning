@@ -1,6 +1,7 @@
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
+from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtWidgets import QMainWindow, QApplication
-from PyQt5.QtCore import QUrl
+from PyQt5.QtCore import QUrl, pyqtSlot, QObject
 from PyQt5 import uic
 from pprint import pprint
 from bs4 import BeautifulSoup
@@ -28,8 +29,16 @@ class TextScreen(QMainWindow):
         self.jpBody = self.jpTxt.find('body')
         self.tlBody = self.tlTxt.find('body')
 
+        # page = CustomWebEnginePage()
         self.viewJp = QWebEngineView(self)
         self.viewTl = QWebEngineView(self)
+        self.viewJp.setPage(CustomWebEnginePage(self.viewJp))
+
+        # Objek pyweb dalam WebView harus dibuat sebelum run js
+        self.channel = QWebChannel()
+        self.channel.registerObject('pyweb', self)
+        self.viewJp.page().setWebChannel(self.channel)
+
         self.verticalLayout.addWidget(self.viewJp)
         self.verticalLayout.addWidget(self.viewTl)
         self.viewJp.setUrl(QUrl.fromLocalFile('/'+self.jpHtml))
@@ -70,53 +79,81 @@ class TextScreen(QMainWindow):
         capture = Capture('screenshot.png')
         parse = Parse()
         
-        jpParagraph = self.jpTxt.new_tag('p')
-        tlParagraph = self.tlTxt.new_tag('p')
-        kanji = ''
+        jpDiv = self.jpTxt.new_tag('div')
+        tlDiv = self.tlTxt.new_tag('div')
+        
+        kata = ''
         first_part = ''
         second_part = ''
-        ruby = ''
+        kanji = ''
 
         jpText = capture.getText()
         jpText = jpText.replace('\n','')
         jpParseTxt = parse.jpParse1(jpText)
 
-        pprint(jpParseTxt)
+        # pprint(jpParseTxt)
         print()
 
         for word in jpParseTxt:
-            kanji = word[0]
+            jpP = self.jpTxt.new_tag('p')
+            jpP['class'] = 'jisho'
+            kata = word[0]
 
             if word[1]:
                 # split kanji and other text
                 # fix problem like こんな風に where the kanji in between 2 hiragana
-                split_index = kanji.find(word[1][0])
+                split_index = kata.find(word[1][0])
                 if split_index != -1:
-                    first_part = kanji[:split_index] 
-                    second_part = kanji[split_index + len(word[1][0]):]
+                    first_part = kata[:split_index] 
+                    second_part = kata[split_index + len(word[1][0]):]
                 
-                ruby = self.jpTxt.new_tag("ruby")
-                ruby.append(word[1][0])
+                kanji = self.jpTxt.new_tag("ruby")
+                kanji.append(word[1][0])
                 rt = self.jpTxt.new_tag("rt")
                 rt.append(self.furigana(word[1][1], 'hiragana'))
-                ruby.append(rt)
+                kanji.append(rt)
 
-            if first_part or second_part or ruby:
+            if first_part or second_part or kanji:
                 if first_part:
-                    jpParagraph.append(first_part)
-                if ruby:
-                    jpParagraph.append(ruby)
+                    jpP.append(first_part)
+                if kanji:
+                    jpP.append(kanji)
                 if second_part:
-                    jpParagraph.append(second_part)
-                ruby = ''
+                    jpP.append(second_part)
+                kanji = ''
                 first_part = ''
                 second_part = ''
             else:
-                jpParagraph.append(kanji)
+                jpP.append(kata)
+
+            jpDiv.append(jpP)
         
         tlTxt = translate_text(jpText, "en")
-        tlParagraph.append(tlTxt)
-        self.setText(jpParagraph, tlParagraph)
+        tlDiv.append(tlTxt)
+
+        self.setText(jpDiv, tlDiv)
+        # Menunggu seluruh text dan class load sepenuhnya
+        self.viewJp.loadFinished.connect(self.addClickWord)
+
+    def addClickWord(self, ok):
+        if ok:
+            js = """
+            // objek harus diinisialisasi untuk menghubungkan fungsi py ke js
+            var pyweb;
+            new QWebChannel(qt.webChannelTransport, function (channel) {
+                pyweb = channel.objects.pyweb;
+            });
+
+            // membuat seluruh kata clickable
+            var elements = document.querySelectorAll('.jisho');
+            elements.forEach(function(element) {
+                element.addEventListener('click', function() {
+                    var japaneseWord = element.textContent;
+                    pyweb.jishoReq(japaneseWord);
+                });
+            });
+            """
+            self.viewJp.page().runJavaScript(js)
 
     def setText(self, jpTxt, tlTxt):
         self.jpBody.string = ''
@@ -138,6 +175,20 @@ class TextScreen(QMainWindow):
 
         self.viewJp.setUrl(QUrl.fromLocalFile('/'+self.jpHtml))
         self.viewTl.setUrl(QUrl.fromLocalFile('/'+self.tlHtml))
+
+    # jika fungsi memiliki parameter, typedata harus ditentukan pada @pyqtSlot
+    # jika ingin passing class objek, makah class harus menginherit QObject
+    @pyqtSlot(str)
+    def jishoReq(self, kata):
+        print(kata)
+
+class CustomWebEnginePage(QWebEnginePage):
+
+    # override print console js untuk debugging
+    def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
+        # Override the JavaScriptConsoleMessage method
+        print(f"JavaScript Console Message: Level {level}, Message: {message}, Line Number: {lineNumber}, Source ID: {sourceID}")
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -1,42 +1,58 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QTextBrowser, QWidget
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QDesktopServices, QTextCursor
+from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWebChannel import QWebChannel
+from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 
-class MyWindow(QMainWindow):
+html = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8"/>        
+        <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    </head>
+    <body> <h2 id="header">Header.</h2> </body>
+    <script>
+        var backend;
+        new QWebChannel(qt.webChannelTransport, function (channel) {
+            backend = channel.objects.backend;
+        });
+
+        document.getElementById("header").addEventListener("click", function(){
+            backend.foo();
+        });
+    </script>
+</html>
+'''
+
+class HelloWorldHtmlApp(QWebEngineView):
+
     def __init__(self):
         super().__init__()
 
-        central_widget = QWidget()
-        layout = QVBoxLayout()
+        # setup a page with my html
+        my_page = CustomWebEnginePage(self)
+        my_page.setHtml(html)
+        self.setPage(my_page)
 
-        # Buat QTextBrowser
-        text_browser = QTextBrowser()
-        text_browser.setOpenExternalLinks(True)
-        text_browser.setOpenLinks(True)
-        text_browser.setHtml("a <a href='action_a'>b</a> c <a href='action_b'>d</a> e")
+        # setup channel
+        self.channel = QWebChannel()
+        self.channel.registerObject('backend', self)
+        self.page().setWebChannel(self.channel)
+        self.show()
 
-        # Tambahkan QTextBrowser ke layout
-        layout.addWidget(text_browser)
+    @pyqtSlot()
+    def foo(self):
+        print('bar')
 
-        # Menangani tindakan yang sesuai untuk setiap tautan
-        text_browser.anchorClicked.connect(self.handle_link_click)
+class CustomWebEnginePage(QWebEnginePage):
+    def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
+        # Override the JavaScriptConsoleMessage method
+        print(f"JavaScript Console Message: Level {level}, Message: {message}, Line Number: {lineNumber}, Source ID: {sourceID}")
 
-        central_widget.setLayout(layout)
-        self.setCentralWidget(central_widget)
 
-    def handle_link_click(self, url):
-        link = url.toString()
-        if link == "action_a":
-            print("A clicked")
-            # Tindakan atau perintah untuk huruf 'a'
-        elif link == "action_b":
-            print("B clicked")
-            # Tindakan atau perintah untuk huruf 'b'
-        self.centralWidget().findChild(QTextBrowser).setHtml("a <a href='action_a'>b</a> c <a href='action_b'>d</a> e")
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = MyWindow()
-    window.show()
-    sys.exit(app.exec_())
+if __name__ == "__main__":
+    app = QApplication.instance() or QApplication(sys.argv)
+    view = HelloWorldHtmlApp()
+    view.show()
+    app.exec_()
