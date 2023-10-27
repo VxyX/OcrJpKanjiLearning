@@ -3,3 +3,4 @@ dic/ipadic/
 dic/unidic/
 screenshot.png
 src/__pycache__/
+node_modules/

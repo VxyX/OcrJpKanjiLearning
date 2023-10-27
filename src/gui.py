@@ -2,7 +2,6 @@ from PyQt5.QtWidgets import QMainWindow, QApplication
 from PyQt5 import uic
 import sys
 from screen import ScreenShot, TextScreen
-from threading import Thread
 
 class Gui(QMainWindow):
     def __init__(self):
