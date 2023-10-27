@@ -14,15 +14,32 @@
             vertical-align: super;
         }
         p{
-            display: inline;
+            display: inline-block;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+        p:hover, p:hover ruby rt{
+            color: rgb(73, 73, 73);
+            background-color: rgb(205, 149, 233);
+        }
+        p.active, p.active ruby rt{
+            color: white;
+            background-color: rgb(134, 58, 172);
         }
     </style>
 </head>
-<body><div><p class="jisho">で</p><p class="jisho">んな</p><p class="jisho">こと</p><p class="jisho">も</p><p class="jisho">、</p><p class="jisho"><ruby>圧<rt>あつ</rt></ruby></p><p class="jisho"><ruby>豆<rt>まめ</rt></ruby></p><p class="jisho">で</p><p class="jisho"><ruby>科し<rt>かし</rt></ruby>ぐくやる</p><p class="jisho">のが1<ruby>秋<rt>あき</rt></ruby>だ</p><p class="jisho">よ</p><p class="jisho">ねー</p><p class="jisho">エ</p></div></body>
+<body><div><p class="jisho">【</p><p class="jisho">ウマ</p><p class="jisho"><ruby>娘<rt>むすめ</rt></ruby></p><p class="jisho">】</p><p class="jisho">イベント</p><p class="jisho">選択<ruby>肢<rt>し</rt></ruby></p><p class="jisho">チェッカー</p><p class="jisho">(</p><p class="jisho"><ruby>逆引き<rt>ぎゃくびき</rt></ruby></p><p class="jisho"><ruby>検索<rt>けんさく</rt></ruby></p><p class="jisho">ツール</p><p class="jisho">)</p></div></body>
 <script>
 
         // document.getElementById("header").addEventListener("click", function(){
         //     backend.foo();
         // });
+        var x , y;
+        // var rects = [];
+        document.addEventListener("mousedown", function(event) {
+            // Mendapatkan koordinat klik
+            x = event.clientX;
+            y = event.clientY;
+        });
 </script>
 </html>

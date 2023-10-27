@@ -1,11 +1,12 @@
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 from PyQt5.QtWebChannel import QWebChannel
-from PyQt5.QtWidgets import QMainWindow, QApplication
-from PyQt5.QtCore import QUrl, pyqtSlot, QObject
-from PyQt5 import uic
+from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel
+from PyQt5.QtCore import QUrl, pyqtSlot, QObject, Qt, QEvent, QPoint, QRect
+from PyQt5 import QtGui, uic
 from pprint import pprint
 from bs4 import BeautifulSoup
 import sys
+from jisho import Kamus
 
 
 from parsing import Parse
@@ -16,24 +17,37 @@ class TextScreen(QMainWindow):
     def __init__(self):
         super(TextScreen, self).__init__()
 
-        self.jpHtml = 'src/html/jpText.html'
-        self.tlHtml = 'src/html/tlText.html'
+        self.kamus = Kamus()
+        self.showKamus = False
+        self.globTxtPos = None
+        # self.globTxtRect = None
+        self.jpHtmlFile = 'src/html/jpText.html'
+        # self.tlHtmlFile = 'src/html/tlText.html'
 
         # load file
         uic.loadUi("src/gui/textScreen.ui", self)
-        with open(self.jpHtml, "r", encoding='utf-8') as file:
+        with open(self.jpHtmlFile, "r", encoding='utf-8') as file:
             self.jpTxt = BeautifulSoup(file, "html.parser")
-        with open(self.tlHtml, "r", encoding='utf-8') as file:
-            self.tlTxt = BeautifulSoup(file, "html.parser")
+        # with open(self.tlHtmlFile, "r", encoding='utf-8') as file:
+        #     self.tlTxt = BeautifulSoup(file, "html.parser")
 
         self.jpBody = self.jpTxt.find('body')
-        self.tlBody = self.tlTxt.find('body')
-
+        # self.tlBody = self.tlTxt.find('body')
+        
         # page = CustomWebEnginePage()
         self.viewJp = QWebEngineView(self)
-        self.viewTl = QWebEngineView(self)
+        self.viewJp.setContextMenuPolicy(Qt.NoContextMenu)
+        self.viewTl = QLabel()
+        self.viewTl.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.viewTl.setStyleSheet("font-family: Arial; font-size: 16px; margin: 5px; font-weight:bold")
+        # self.viewTl = QWebEngineView(self)
+        # self.viewTl.setContextMenuPolicy(Qt.NoContextMenu)
         self.viewJp.setPage(CustomWebEnginePage(self.viewJp))
-
+        self.viewJp.setUrl(QUrl.fromLocalFile('/'+self.jpHtmlFile))
+        # self.viewTl.setUrl(QUrl.fromLocalFile('/'+self.tlHtmlFile))
+        # QWebEngine can't recieve event handler..
+        # Thus should install the event handler manually
+        self.viewJp.focusProxy().installEventFilter(self)
         # Objek pyweb dalam WebView harus dibuat sebelum run js
         self.channel = QWebChannel()
         self.channel.registerObject('pyweb', self)
@@ -41,9 +55,7 @@ class TextScreen(QMainWindow):
 
         self.verticalLayout.addWidget(self.viewJp)
         self.verticalLayout.addWidget(self.viewTl)
-        self.viewJp.setUrl(QUrl.fromLocalFile('/'+self.jpHtml))
-        self.viewTl.setUrl(QUrl.fromLocalFile('/'+self.tlHtml))
-
+        
         self.clearTxt()
         
         self.show()
@@ -80,7 +92,7 @@ class TextScreen(QMainWindow):
         parse = Parse()
         
         jpDiv = self.jpTxt.new_tag('div')
-        tlDiv = self.tlTxt.new_tag('div')
+        # tlDiv = self.tlTxt.new_tag('div')
         
         kata = ''
         first_part = ''
@@ -129,9 +141,9 @@ class TextScreen(QMainWindow):
             jpDiv.append(jpP)
         
         tlTxt = translate_text(jpText, "en")
-        tlDiv.append(tlTxt)
+        # tlDiv.append(tlTxt)
 
-        self.setText(jpDiv, tlDiv)
+        self.setText(jpDiv, tlTxt)
         # Menunggu seluruh text dan class load sepenuhnya
         self.viewJp.loadFinished.connect(self.addClickWord)
 
@@ -146,10 +158,18 @@ class TextScreen(QMainWindow):
 
             // membuat seluruh kata clickable
             var elements = document.querySelectorAll('.jisho');
+            var ele = document.querySelector('p');
+            var rects = [];
             elements.forEach(function(element) {
                 element.addEventListener('click', function() {
+                    elements.forEach(function(p) {
+                        p.classList.remove("active");
+                    });
+                    element.classList.add("active");
                     var japaneseWord = element.textContent;
-                    pyweb.jishoReq(japaneseWord);
+                    rect = element.getBoundingClientRect()
+                    rects.push(rect)
+                    pyweb.jishoReq(japaneseWord, rect.right, rect.bottom, rect.left, rect.top);
                 });
             });
             """
@@ -157,30 +177,70 @@ class TextScreen(QMainWindow):
 
     def setText(self, jpTxt, tlTxt):
         self.jpBody.string = ''
-        self.tlBody.string = ''
+        # self.tlBody.string = ''
         self.jpBody.append(jpTxt)
-        self.tlBody.append(tlTxt) 
+        # self.tlBody.append(tlTxt)
+        self.viewJp.loadFinished.connect(lambda ok: self.viewTl.setText(tlTxt) if ok else None)
+ 
         self.saveTxt()
 
     def clearTxt(self):
         self.jpBody.string = ''
-        self.tlBody.string = ''
+        # self.tlBody.string = ''
         self.saveTxt()
 
     def saveTxt(self):
-        with open(self.jpHtml, 'w', encoding='utf-8') as file:
+        with open(self.jpHtmlFile, 'w', encoding='utf-8') as file:
             file.write(str(self.jpTxt))
-        with open(self.tlHtml, 'w', encoding='utf-8') as file:
-            file.write(str(self.tlTxt))
+        # with open(self.tlHtmlFile, 'w', encoding='utf-8') as file:
+        #     file.write(str(self.tlTxt))
 
-        self.viewJp.setUrl(QUrl.fromLocalFile('/'+self.jpHtml))
-        self.viewTl.setUrl(QUrl.fromLocalFile('/'+self.tlHtml))
+        self.viewJp.setUrl(QUrl.fromLocalFile('/'+self.jpHtmlFile))
+        # self.viewTl.setUrl(QUrl.fromLocalFile('/'+self.tlHtmlFile))
+
+    def eventFilter(self, source, event):
+        # if (event.type() == QEvent.ChildAdded and
+        #     source is self.viewJp and
+        #     event.child().isWidgetType()):
+        #     self._glwidget = event.child()
+        #     self._glwidget.installEventFilter(self)
+        # elif (event.type() == QEvent.MouseButtonPress and
+        #       source is self._glwidget):
+        #     print('web-view mouse-press:', event.pos())
+        if (event.type() == QEvent.MouseButtonPress):
+            if event.button() == Qt.LeftButton:
+                # print(event.pos())
+                self.oldPos = event.globalPos()
+                if self.showKamus:
+                    rect = self.kamus.geometry()
+                    if (self.oldPos not in rect):
+                        self.kamus.hide()
+                        self.showKamus = False
+                if self.globTxtPos:
+                    if self.oldPos not in self.globTxtRect:
+                        js = 'var ele = document.querySelector(".active"); ele.classList.remove("active");'
+                        self.viewJp.page().runJavaScript(js)
+            # print(event.pos())
+        # print(source, event.type())
+        return super().eventFilter(source, event)
+        # print('tes')
+
+    # def mouseReleaseEvent(self, event):
+    #     self.oldPos = None
 
     # jika fungsi memiliki parameter, typedata harus ditentukan pada @pyqtSlot
     # jika ingin passing class objek, makah class harus menginherit QObject
-    @pyqtSlot(str)
-    def jishoReq(self, kata):
-        print(kata)
+    @pyqtSlot(str, int, int, int, int)
+    def jishoReq(self, kata, x, y, w, h):
+        # print(self.viewJp.mapToGlobal(QPoint(x,y)))
+        self.globTxtPos = self.viewJp.mapToGlobal(QPoint(x,y))
+        self.globTxtRect = QRect(self.globTxtPos.x(), self.globTxtPos.y(), x - w, y - h)
+        print(self.globTxtRect)
+        self.kamus.moveWin(self.globTxtPos.x(), self.globTxtPos.y())
+        # self.kamus.moveWin(self.oldPos.x(), self.oldPos.y())
+        self.kamus.show()
+        self.showKamus = True
+        pass
 
 class CustomWebEnginePage(QWebEnginePage):
 
