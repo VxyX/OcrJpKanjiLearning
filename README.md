@@ -6,6 +6,7 @@ Aplikasi OCR Translator untuk Bahasa Jepang - Indonesia/Inggris dilengkapi denga
 - TBD...
 
 WIP:
+- error handling (0%)
 - UI/UX (in progress 30%)
 - Screen Capture (Done)
 - ScreenShot to Text using OCR (Done)
