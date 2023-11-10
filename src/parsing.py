@@ -5,6 +5,9 @@ import pytesseract
 from PIL import Image
 from pprint import pprint
 
+to_u = ['ぅ', 'う', 'ぉ', 'お', 'く', 'ぐ', 'こ', 'ご', 'す', 'ず', 'そ', 'ぞ', 'つ', 'づ', 'と', 'ど', 'の', 'ふ', 'ぶ', 'ぷ', 'ほ', 'ぼ', 'ぽ', 'も', 'よ', 'ょ']
+to_i = ['ぇ', 'え', 'け', 'げ', 'せ', 'ぜ', 'て', 'で', 'ね', 'へ', 'べ', 'ぺ' 'め']
+
 class Parse():
     def __init__(self):
         # jp dictionary for MeCab
@@ -14,6 +17,38 @@ class Parse():
         self.tagger = MeCab.Tagger(f"-d {self.unidic}")
         pass
     
+    def furigana(self, text, jenis_huruf='hiragana'or'katakana'or'romaji'):
+        txt = text
+        new_txt = ''
+        if jenis_huruf == 'katakana':
+            return txt
+        
+        for char in txt:
+            char_code = ord(char)
+            if jenis_huruf == 'hiragana':
+                # Periksa apakah karakter bukan hiragana
+                if not 0x3040 <= char_code <= 0x309F:
+                    # Periksa apakah karakter adalah katakana
+                    if 0x30A0 <= char_code <= 0x30FF:
+                        # Kode hiragana adalah kode katakana - 96
+                        hiragana_code = char_code - 96 
+                        hiragana_character = chr(hiragana_code)
+                        new_txt += hiragana_character
+                else:
+                    # Jika bukan karakter katakana, tambahkan karakter aslinya
+                    new_txt += char
+
+            if jenis_huruf == 'katakana':
+                if not 0x30A0 <= char_code <= 0x30FF:
+                    if 0x3040 <= char_code <= 0x309F:
+                        # Kode hiragana adalah kode katakana - 96
+                        katakana_code = char_code + 96 
+                        katakana_character = chr(katakana_code)
+                        new_txt += katakana_character
+            
+
+        return new_txt
+
     def jpParse1(self, text):
         # testing beberapa kalimat
         # text = "行ってきましたか"
@@ -50,7 +85,7 @@ class Parse():
         inputKata = False
         kata = ''
         katadasar = []
-        kataasli = []
+        kanji = []
         skip = False
 
         for i in range(len(data)):
@@ -59,26 +94,87 @@ class Parse():
             #     continue
 
             # cek apakah terdapat kanji 
-            kanji = data[i][0]
-            kanjilist = list(kanji)
+            kanji_check = data[i][0]
+            kanjilist = list(kanji_check)
             for char in kanjilist:
                 kanjiCode = ord(char)
                 if (kanjiCode > 0x4e00 and kanjiCode <= 0x9fff):
-                    temp = [data[i][0], data[i][1]]
-                    kataasli = temp
+                    kanjilist2 = list(kanji_check)
+                    kanalist = list(data[i][1])
+                    hiraganalist = []
+                    for x in range(len(kanalist)):
+                        c = kanalist[x]
+                        if (c == 'ー'):
+                            if hiraganalist:
+                                if (hiraganalist[-1] in to_i):
+                                    c = 'イ'
+                                if (hiraganalist[-1] in to_u):    
+                                    c = 'ウ'
+                        c = ord(c)
+                        if 0x30A0 <= c <= 0x30FF:
+                            # Kode hiragana adalah kode katakana - 96
+                            hiragana_code = c - 96 
+                            hiragana_char = chr(hiragana_code)
+                            hiraganalist.append(hiragana_char)
+                    # print(kanjilist2)
+
+                    # better kanji and reading separation
+                    new_kList = []
+                    new_hiList = []
+                    if hiraganalist:
+                        for c in kanjilist:
+                            c_code = ord(c)
+                            # print(c , c_code)
+                            if (0x3040 <= c_code <= 0x309F):
+                                for c1 in hiraganalist:
+                                    if (c == c1):
+                                        h_index = hiraganalist.index(c1)
+                                        if (h_index != 0):
+                                            str_hi = ''
+                                            for h in range(h_index):
+                                                str_hi += hiraganalist[h]
+                                        hiraganalist = hiraganalist[h_index+1:]
+                                        kanjilist2.remove(c1)
+                                        new_hiList.append(str_hi)
+                                        # print(hiraganalist)
+                                        break
+                            else:
+                                new_kList.append(c)
+                    # print(kanjilist2, hiraganalist)
+                    # str_kanjilist = ''.join(kanjilist2)
+                    # str_hiraganalist = ''.join(hiraganalist)
+                    # print(str_kanjilist, str_hiraganalist)
+                    if (not new_hiList):
+                        str_hiraganalist = ''.join(hiraganalist)
+                        new_hiList = [str_hiraganalist]
+                        str_kanjilist = ''.join(new_kList)
+                        new_kList = [str_kanjilist]
+
+                    if (kanji):
+                        kanji[0].extend(new_kList)
+                        kanji[1].extend(new_hiList)
+                    else :
+                        temp = [new_kList, new_hiList]
+                        kanji += temp
+                    # print(kanji)
                     break
 
             # cek tipe kelompok kata kerja
             if (data[i][5]):
                 kelompokKataKerja.append(data[i][5])
-                if ("動詞-一般" in data[i][4]):
+                # 動詞 (youshi) = kata kerja
+                # 容詞 (doushi) = kata sifat
+                if (("動詞-一般" in data[i][4]) or ("容詞-一般" in data[i][4])):
                     katadasar = [data[i][3], data[i][2]]
 
 
             if ('サ変可能' in data[i][4]):
                 # conjVerb = True
-                if ('非自立可能' in data[i+1][4] or '接尾辞' in data[i+1][4]):
-                    conj = True
+                try:
+                    if ('非自立可能' in data[i+1][4] or '接尾辞' in data[i+1][4]):
+                        conj = True
+                except :
+                    pass
 
             # combine verb 連用形 (renkyoukei/continuous form), 連体詞 (rentaishi/pre-noun adjectival/pronomina)
             # 助詞-準体助詞 ()
@@ -169,25 +265,27 @@ class Parse():
             # print(conjVerb, inputkata, kata)
             if inputKata:
                 temp = [kata, [], [], []]
-                if kataasli:
-                    temp[1] = kataasli
+                if kanji:
+                    temp[1] = kanji
                 if katadasar:
+                    katadasar[1] = self.furigana(katadasar[1], 'hiragana')
                     temp[2] = katadasar
                 if kelompokKataKerja:
                     temp[3] = kelompokKataKerja
                 kelompokKata.append(temp)
                 kata = ''
-                kataasli = []
+                kanji = []
                 katadasar = []
                 kelompokKataKerja = []
         #############END FOR LOOP#####################
-        # data/kelompokKata -> kata_parser -> [kata_parser, [kata_asli, cara baca], [kata_dasar, cara baca], [tipe konjugasi(dapat lebih dari 1)]]
+        # data/kelompokKata -> kata_parser -> [kata_parser, [kanji, cara baca], [kata_dasar, cara baca], [tipe konjugasi(dapat lebih dari 1)]]
         # pprint(kelompokKata)
         return kelompokKata
     
 if (__name__ == "__main__"):
     parse = Parse()
-    a = parse.jpParse1("自分の両親をこんな風にを扱うなんて、彼は気が狂っているに違いない。")
+    a = parse.jpParse1("景気後退は賃金生活者を苦境に追い込みたした")
+    pprint(a)
     for x in a:
         if x[1]:
             print(x[1]) 

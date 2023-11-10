@@ -19,14 +19,20 @@ from pprint import pprint
 # files = os.listdir(cwd)  # Get all the files in that directory
 # print("Files in %r: %s" % (cwd, files))
 
-class Kamus(QWidget):
+class Dict(QWidget):
     def __init__(self, x=100, y=100):
-        super(Kamus, self).__init__()
+        super(Dict, self).__init__()
+
+        self.kanjivg = None
+        self.word = None
+        self.meanings = None
+        self.part_of_speech = None
+        self.jlpt_lv = None
 
         # load file
-        self.kamusHtmlFile = 'src/html/kamus.html'
-        with open(self.kamusHtmlFile, "r", encoding='utf-8') as file:
-            self.jpTxt = BeautifulSoup(file, "html.parser")
+        self.dictHtmlFile = 'src/html/dictScreen.html'
+        with open(self.dictHtmlFile, "r", encoding='utf-8') as file:
+            self.dictTxt = BeautifulSoup(file, "html.parser")
 
         # create widget
         self.setWindowTitle('Frameless Widget Example')
@@ -40,14 +46,12 @@ class Kamus(QWidget):
 
         # create webview
         self.content = QWebEngineView(self)
-        self.content.setUrl(QUrl.fromLocalFile('/'+self.kamusHtmlFile))
+        self.content.setUrl(QUrl.fromLocalFile('/'+self.dictHtmlFile))
 
         self.winLayout.addWidget(self.content)
         # set transparancy
         # self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-
-        
 
         self.setLayout(self.winLayout)
         # self.show()
@@ -67,6 +71,65 @@ class Kamus(QWidget):
     def moveWin(self, delta):
         self.move(self.x() + delta.x(), self.y() + delta.y())
 
+    def addWord(self, word, kanji="", kanji_reading=""):
+        # Data
+        # [0] -> Kanji
+        # [1] -> Reading
+        # [2] -> JLPT Level
+        # [3] -> Part of Speech
+        # [5] -> Meanings (list)
+        data = self.search_jisho(word)
+
+        container = self.dictTxt.new_tag("div")
+        header_cont = self.dictTxt.new_tag("div") # word
+        info_cont = self.dictTxt.new_tag("div") # reading, jlpt, part o spch
+        meanings_cont = self.dictTxt.new_tag("div") # meanings
+        kvg_cont = self.dictTxt.new_tag("div") # writing animation
+
+        # Header Section
+        titleP = self.dictTxt.new_tag("p")
+        titleP['class'] = 'title'
+        if (kanji and kanji_reading):
+            kan = ''
+            first_part = ''
+            second_part = ''
+            kan = self.dictTxt.new_tag("ruby")
+            kan.append(kanji)
+            furi = self.dictTxt.new_tag("rt")
+            furi.append(kanji_reading)
+            kan.append(furi)
+            
+            split_index = word.find(kanji)
+            if split_index != -1:
+                first_part = word[:split_index] 
+                second_part = word[split_index + len(kanji):]
+            if first_part:
+                titleP.append(first_part)
+            if kanji:
+                titleP.append(kan)
+            if second_part:
+                titleP.append(second_part)
+        else :
+            titleP.append(word)
+        header_cont.append(titleP)
+
+        # Word Info Section
+        readP = self.dictTxt.new_tag("p")
+        readP.append(data[1])
+        jlptP = self.dictTxt.new_tag("p")
+        jlptP.append(data[2])
+        p_of_sP = self.dictTxt.new_tag("p")
+        p_of_sP.append(data[3])
+
+        container.append(header_cont)
+        # container.append(header_cont)
+        # container.append(header_cont)
+        # container.append(header_cont)
+
+
+
+        pass
+
     # Fungsi untuk mencari makna kata di Jisho menggunakan Jisho API
     def search_jisho(self, word):
         url = f"https://jisho.org/api/v1/search/words?keyword={word}"
@@ -85,9 +148,12 @@ class Kamus(QWidget):
             if data["meta"]["status"] == 200 and data["data"]:
                 # Ambil data pertama (paling relevan)
                 result = data["data"][0]
-                japanese_word = result["japanese"][0]["word"]
+                kanji = result["japanese"][0]["word"]
+                hiragana = result["japanese"][0]["reading"]
+                jlpt = result["jlpt"]
+                kelas = result["sense"]["parts_of_speech"]
                 meanings = [", ".join(sense["english_definitions"]) for sense in result["senses"]]
-                return japanese_word, meanings
+                return [kanji, hiragana, jlpt, kelas, meanings]
             else:
                 return "Kata tidak ditemukan di Jisho.", None
         else:
@@ -98,7 +164,7 @@ class Kamus(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    widget = Kamus()
+    widget = Dict()
     search_word = '華麗'
     japanese_word, meanings = widget.search_jisho(search_word)
     print(meanings)

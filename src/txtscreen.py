@@ -6,7 +6,7 @@ from PyQt5 import uic
 from pprint import pprint
 from bs4 import BeautifulSoup
 import sys
-from jisho import Kamus
+from jisho import Dict
 
 from parsing import Parse
 from ocr import Capture
@@ -16,7 +16,7 @@ class TextScreen(QMainWindow):
     def __init__(self):
         super(TextScreen, self).__init__()
 
-        self.kamus = Kamus()
+        self.kamus = Dict()
         self.showKamus = False
         self.globTxtPos = None
         self.globTxtRect = None
@@ -86,6 +86,14 @@ class TextScreen(QMainWindow):
         return new_txt
         pass
 
+    # txtProcessing -> need to optimize furigana function more if can...
+    # Problems:
+    # - romaji option for furigana
+    # - furigana on specific kanji ex. -> 追<お> い 込<こ> み
+    # - romaji on specific kanji like above
+    # - romaji on the whole text ex. -> 追<o> い<i> 込<ko> み<mi>
+    # currently:
+    # - devide kanji that have 2 hiragana in between ex. -> こんな 風<ふう> に
     def txtProcessing(self):
         capture = Capture('screenshot.png')
         parse = Parse()
@@ -97,6 +105,7 @@ class TextScreen(QMainWindow):
         first_part = ''
         second_part = ''
         kanji = ''
+        kanji_list = []
 
         jpText = capture.getText()
         jpText = jpText.replace('\n','')
@@ -109,32 +118,105 @@ class TextScreen(QMainWindow):
         for word in jpParseTxt:
             jpP = self.jpTxt.new_tag('p')
             jpP['class'] = 'jisho'
+            w = self.jpTxt.new_tag("ruby")
             kata = word[0]
+            con = False
+            # data access helper:
+            # word[1][0] -> kanji
+            # word[1][1] -> reading
+            # kanji         - reading
+            # word[1][0][0] - word[1][1][0]
+            if word[1]: # check if kanji exist in the data
+                temp_word = word[0]
+                temp_kanji = word[1][0]
+                temp_read = word[1][1]
+                w_list = list(word[0])
 
-            if word[1]:
+                #iterate each letter for applying furigana better
+                for letter in w_list:
+                    
+                    # this will skip if the current letter not matching the temp word letter
+                    # this helps to fix problems if theres more than 1 letter/kanji inside temp word/kanji
+                    # so it can skip the current leter
+                    if temp_word:
+                        if letter != temp_word[0]:
+                            continue
+                    else:
+                        break
+                    
+                    # check if the letter is kanji
+                    # if so, check if the kanji exist in word kanji data
+                    # if exist, take the kanji data temporally
+                    k_code = ord(letter)
+                    if 0x4e00 < k_code <= 0x9fff:
+                        # if the last letter is not a kanji,
+                        # this will close the last rb tag
+                        if con:
+                            rt = self.jpTxt.new_tag("rt")
+                            w.append(rt)
+                            con = False
+                        for string in temp_kanji:
+                            if letter in string:
+                                temp_w = string
+                                break
+                    # check if the temporal kanji data exist
+                    # if so, process to make furigana
+                    if temp_w:
+                        k_index = temp_kanji.index(temp_w)
+                        rb = self.jpTxt.new_tag("rb")
+                        rb.append(temp_kanji[k_index])
+                        rt = self.jpTxt.new_tag("rt")
+                        rt.append(parse.furigana(temp_read[k_index], 'hiragana'))
+                        w.append(rb)
+                        w.append(rt)
+
+                        # after furigana created, delete the current word on the list
+                        # replacing temp_word is important
+                        temp_kanji.remove(temp_kanji[k_index])
+                        temp_read.remove(temp_read[k_index])
+                        temp_word = temp_word.replace(temp_w,'',1)
+                        # print(temp_word) 
+                        temp_w = ''
+                    else:
+                        print(letter)
+                        w.append(letter)
+                        con = True
+                        temp_word = temp_word.replace(letter,'',1)
+
+                # if the last letters iteration are not kanji,
+                # this will close the rb tag with rt tag,
+                if con:
+                    rt = self.jpTxt.new_tag("rt")
+                    w.append(rt)
+                    con = False
+
+                existing_classes = jpP.get('class')
+                jpP['class'] = existing_classes + " furigana"
+                jpP.append(w)
                 # split kanji and other text
                 # fix problem like こんな風に where the kanji in between 2 hiragana
-                split_index = kata.find(word[1][0])
-                if split_index != -1:
-                    first_part = kata[:split_index] 
-                    second_part = kata[split_index + len(word[1][0]):]
                 
-                kanji = self.jpTxt.new_tag("ruby")
-                kanji.append(word[1][0])
-                rt = self.jpTxt.new_tag("rt")
-                rt.append(self.furigana(word[1][1], 'hiragana'))
-                kanji.append(rt)
+                # split_index = kata.find(k[0])
+                # if split_index != -1:
+                #     first_part = kata[:split_index] 
+                #     second_part = kata[split_index + len(k[0]):]
+            
+                # kanji = self.jpTxt.new_tag("ruby")
+                # kanji.append(word[1][0])
+                # rt = self.jpTxt.new_tag("rt")
+                # rt.append(parse.furigana(word[1][1], 'hiragana'))
+                # kanji.append(rt)
 
-            if first_part or second_part or kanji:
-                if first_part:
-                    jpP.append(first_part)
-                if kanji:
-                    jpP.append(kanji)
-                if second_part:
-                    jpP.append(second_part)
-                kanji = ''
-                first_part = ''
-                second_part = ''
+            # if first_part or second_part or kanji:
+            #     if first_part:
+            #         jpP.append(first_part)
+            #     if kanji:
+            #         jpP.append(kanji)
+            #     if second_part:
+            #         jpP.append(second_part)
+            #     kanji = ''
+            #     first_part = ''
+            #     second_part = ''
             else:
                 jpP.append(kata)
 
@@ -172,10 +254,18 @@ class TextScreen(QMainWindow):
                         p.classList.remove("active");
                     });
                     element.classList.add("active");
+                    var ruby = element.querySelector('ruby')
                     var japaneseWord = element.textContent;
                     rect = element.getBoundingClientRect()
                     rects.push(rect)
-                    pyweb.jishoReq(japaneseWord, rect.right, rect.bottom, rect.left, rect.top);
+                    if (ruby) {
+                        var kanji = ruby.firstChild.textContent;
+                        var reading = ruby.querySelector('rt').textContent;
+                        pyweb.jishoReq(japaneseWord, rect.right, rect.bottom, rect.left, rect.top, kanji, reading);
+                    } else {
+                        pyweb.jishoReq(japaneseWord, rect.right, rect.bottom, rect.left, rect.top, '', '');
+                    }
+                    
                 });
             });
             """
@@ -224,11 +314,15 @@ class TextScreen(QMainWindow):
 
     # jika fungsi memiliki parameter, typedata harus ditentukan pada @pyqtSlot
     # jika ingin passing class objek, makah class harus menginherit QObject
-    @pyqtSlot(str, int, int, int, int)
-    def jishoReq(self, kata, x, y, w, h):
+    @pyqtSlot(str, int, int, int, int, str, str)
+    def jishoReq(self, kata, x, y, w, h, kanji, reading):
         # print(self.viewJp.mapToGlobal(QPoint(x,y)))
+        # print(kanji, reading)
         self.globTxtPos = self.viewJp.mapToGlobal(QPoint(x,y))
         self.globTxtRect = QRect(self.globTxtPos.x(), self.globTxtPos.y(), x - w, y - h)
+
+        # if (kanji and reading):
+        #     self.kamus.search_jisho()
 
         self.kamus.moveWin(self.globTxtPos.x(), self.globTxtPos.y())
         self.kamus.show()
