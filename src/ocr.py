@@ -25,6 +25,6 @@ class Capture():
         lang = 'jpn'
 
         # Terapkan OCR pada gambar menggunakan pytesseract
-        text = pytesseract.image_to_string(image, lang, config=self.jp_trained_data)
+        text = pytesseract.image_to_string(image, lang)
 
         return text

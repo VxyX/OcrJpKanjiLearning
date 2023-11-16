@@ -113,7 +113,7 @@ class TextScreen(QMainWindow):
         # jpText = jpText.replace(' ','')
         jpParseTxt = parse.jpParse1(jpText)
 
-        # pprint(jpParseTxt)
+        pprint(jpParseTxt)
         print()
 
         for word in jpParseTxt:

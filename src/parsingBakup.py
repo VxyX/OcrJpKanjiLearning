@@ -248,9 +248,6 @@ class Parse():
             if conj:
                 inputKata = False
                 kata += data[i][0]
-                if (not katadasar and
-                    ('名詞' in data[i][4] or '動詞' in data[i][4] or '形容詞' in data[i][4])):
-                    katadasar = [data[i][3], data[i][2]]
                 try:
                     if ('助動詞' in data[i][4]):
                         # kata += data[0]
@@ -265,9 +262,7 @@ class Parse():
                                     inputKata = True
                     if ('居る' in data[i][3]):
                         if kata:
-                            if ('て' in data[i-1][3]):
-                                kelompokKataKerja.append("動詞-ている")
-                            # kelompokKataKerja.append("動詞-いる")
+                            kelompokKataKerja.append("動詞-居る")
                     # fix adjective and adverb combination
                     if ('形状詞' in data[i][4] or '副詞' in data[i][4]):
                         if ('助動詞' in data[i+1][4] or '連体形' in data[i+1][6]):
@@ -360,21 +355,9 @@ class Parse():
         # pprint(kelompokKata)
         return kelompokKata
     
-# auxverb = 助動詞 / jodoushi (助動詞-list)
-# list -> -マス, -ヌ, -デス
-# auxverb masu + nu = formal negative
-# auxverb desu = to be / is
-# auxverb desu + nu = to be / is negative
-# combine all = formal negative + tobe / is
-#
-# noun + サ行変格 (する) -> verb
-# 
-# Custom
-# 動詞-居る -> iru form = continuous = doing something
-
 if (__name__ == "__main__"):
     parse = Parse()
-    a = parse.jpParse1("遊びしています")
+    a = parse.jpParse1("明日はすごく楽しみにしています。しています")
     pprint(a)
     # for x in a:
     #     if x[1]:
