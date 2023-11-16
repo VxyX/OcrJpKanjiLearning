@@ -12,9 +12,17 @@ class Gui(QMainWindow):
         self.screen = None
 
         # load .ui file
-        uic.loadUi("src/gui/main.ui", self)
+        uic.loadUi("src/gui/mainui2.ui", self)
 
         # 
+        self.dicLang.setItemData(0, 'id')
+        self.dicLang.setItemData(1, 'en')
+        self.transLang.setItemData(0, 'id')
+        self.transLang.setItemData(1, 'en')
+
+        self.transLang.currentIndexChanged.connect(self.checkTransLangIndexChange)
+        self.dicLang.setEnabled(False)
+        self.checkDiffLang.stateChanged.connect(self.checkDiffLangStateChange)
         self.startBtn.clicked.connect(self.startScreen)
 
         # show screen
@@ -38,7 +46,24 @@ class Gui(QMainWindow):
             # Thread(target=self.textScreen.close()).start()
             return
         
+    def checkDiffLangStateChange(self, state):
+        if state == 2:  # Qt.Checked
+            # print('Checkbox dicentang')
+            self.dicLang.setEnabled(True)
+        else:
+            # print('Checkbox tidak dicentang')
+            i = self.transLang.currentIndex()
+            self.dicLang.setCurrentIndex(i)
+            # print(i)
+            self.dicLang.setEnabled(False)
     
+    def checkTransLangIndexChange(self, index):
+        # print(self.trasLang.currentData())
+        if (self.checkDiffLang.checkState() == 0):
+            self.dicLang.setCurrentIndex(index)
+            
+
+
     
     
 if (__name__ == "__main__"):

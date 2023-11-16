@@ -14,6 +14,7 @@ from PIL import Image, ImageTk
 import io
 from svg.path import parse_path
 from pprint import pprint
+import translate
 
 # cwd = os.getcwd()  # Get the current working directory (cwd)
 # files = os.listdir(cwd)  # Get all the files in that directory
@@ -76,8 +77,8 @@ class Dict(QWidget):
         # [0] -> Kanji
         # [1] -> Reading
         # [2] -> JLPT Level
-        # [3] -> Part of Speech
-        # [5] -> Meanings (list)
+        # [3][0] -> Part of Speech
+        # [3][1] -> Meanings (list)
         data = self.search_jisho(word)
 
         container = self.dictTxt.new_tag("div")
@@ -151,9 +152,19 @@ class Dict(QWidget):
                 kanji = result["japanese"][0]["word"]
                 hiragana = result["japanese"][0]["reading"]
                 jlpt = result["jlpt"]
-                kelas = result["sense"]["parts_of_speech"]
-                meanings = [", ".join(sense["english_definitions"]) for sense in result["senses"]]
-                return [kanji, hiragana, jlpt, kelas, meanings]
+                senses = []
+                for sense in result["senses"]:
+                    kelas = sense["parts_of_speech"]
+                    # testing for kamus tl indo
+                    # for tl in kelas:
+                    #     kelas_tl = translate.translate_text(tl,'bing','id','en')
+                    meanings = sense["english_definitions"]
+                    # for tl in meanings:
+                    #     meanings_tl = translate.translate_text(tl,'bing','id','en')
+                    senses.append([kelas, meanings])
+                # kelas = [",".join(sense["parts_of_speech"]) for sense in result["senses"]]
+                # meanings = [", ".join(sense["english_definitions"]) for sense in result["senses"]]
+                return [kanji, hiragana, jlpt, senses]
             else:
                 return "Kata tidak ditemukan di Jisho.", None
         else:
@@ -165,9 +176,9 @@ class Dict(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = Dict()
-    search_word = '華麗'
-    japanese_word, meanings = widget.search_jisho(search_word)
-    print(meanings)
-    print(f"Makna kata {japanese_word}: {', '.join(meanings)}")
-    widget.show()
+    search_word = '買いませんでした'
+    meanings = widget.search_jisho(search_word)
+    pprint(meanings)
+    # print(f"Makna kata {japanese_word}: {', '.join(meanings)}")
+    # widget.show()
     sys.exit(app.exec_())

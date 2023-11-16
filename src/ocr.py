@@ -7,6 +7,8 @@ class Capture():
         # menentukan path tesseract
         self.tesseract_path = r'D:\\Program Files\\Tesseract\\tesseract.exe'
         pytesseract.pytesseract.tesseract_cmd = self.tesseract_path
+        self.jp_trained_data ='--tessdata-dir "D:/Bakup/Materi/Semester9/Skripsi/program/orcjplearning/src/tesseract/tessdata"'
+
         if image:
             self.img = image
         else:
@@ -23,6 +25,6 @@ class Capture():
         lang = 'jpn'
 
         # Terapkan OCR pada gambar menggunakan pytesseract
-        text = pytesseract.image_to_string(image, lang)
+        text = pytesseract.image_to_string(image, lang, config=self.jp_trained_data)
 
         return text

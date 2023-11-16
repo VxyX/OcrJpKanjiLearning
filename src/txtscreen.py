@@ -109,6 +109,7 @@ class TextScreen(QMainWindow):
 
         jpText = capture.getText()
         jpText = jpText.replace('\n','')
+        jpText = jpText.replace(' ','')
         # jpText = jpText.replace(' ','')
         jpParseTxt = parse.jpParse1(jpText)
 
@@ -121,6 +122,23 @@ class TextScreen(QMainWindow):
             w = self.jpTxt.new_tag("ruby")
             kata = word[0]
             con = False
+            w['data-konjugasi'] = ''
+            w['data-kelas'] = ''
+
+            if(word[3]):
+                for conj in word[3]:
+                    if (w['data-konjugasi']):
+                        w['data-konjugasi'] += ','+conj
+                    else:
+                        w['data-konjugasi'] += conj
+            
+            if(word[4]):
+                for kelas in word[4]:
+                    if (w['data-kelas']):
+                        w['data-kelas'] += ','+kelas
+                    else:
+                        w['data-kelas'] += kelas
+            
             # data access helper:
             # word[1][0] -> kanji
             # word[1][1] -> reading
@@ -178,7 +196,7 @@ class TextScreen(QMainWindow):
                         # print(temp_word) 
                         temp_w = ''
                     else:
-                        print(letter)
+                        # print(letter)
                         w.append(letter)
                         con = True
                         temp_word = temp_word.replace(letter,'',1)
@@ -221,7 +239,7 @@ class TextScreen(QMainWindow):
                 jpP.append(kata)
 
             jpDiv.append(jpP)
-        print(jpText)
+        # print(jpText)
         # return
         tlTxt = translate_text(jpText,'bing','en')
         # tlDiv.append(tlTxt)
@@ -254,13 +272,18 @@ class TextScreen(QMainWindow):
                         p.classList.remove("active");
                     });
                     element.classList.add("active");
+
+                    //p -> ruby
                     var ruby = element.querySelector('ruby')
                     var japaneseWord = element.textContent;
                     rect = element.getBoundingClientRect()
                     rects.push(rect)
                     if (ruby) {
+                        //p -> ruby -> rb
                         var kanji = ruby.firstChild.textContent;
+                        //p -> ruby -> rt
                         var reading = ruby.querySelector('rt').textContent;
+
                         pyweb.jishoReq(japaneseWord, rect.right, rect.bottom, rect.left, rect.top, kanji, reading);
                     } else {
                         pyweb.jishoReq(japaneseWord, rect.right, rect.bottom, rect.left, rect.top, '', '');
@@ -315,7 +338,7 @@ class TextScreen(QMainWindow):
     # jika fungsi memiliki parameter, typedata harus ditentukan pada @pyqtSlot
     # jika ingin passing class objek, makah class harus menginherit QObject
     @pyqtSlot(str, int, int, int, int, str, str)
-    def jishoReq(self, kata, x, y, w, h, kanji, reading):
+    def jishoReq(self, word, x, y, w, h, kanji, reading):
         # print(self.viewJp.mapToGlobal(QPoint(x,y)))
         # print(kanji, reading)
         self.globTxtPos = self.viewJp.mapToGlobal(QPoint(x,y))
