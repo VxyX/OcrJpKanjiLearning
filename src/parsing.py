@@ -60,12 +60,12 @@ class Parse():
         # text = "こんな、そんな、あんな"
         # text = "アパートの壁が薄いので、隣の部屋の人のいびきまで聞こえてきて、気になって眠れない。"
         # text = "私の両親は、田舎で農業を営んでいる"
-        # text = "聞こえる.聞こえない.聞こえます.聞こえません.聞こえた.聞こえなかった.聞こえました.聞こえませんでした.聞こえて.聞こえなくて.聞こえられる.聞こえられない.聞こえさせる.聞こえさせない.聞こえさせられる.聞こえさせられない.聞こえろ.聞こえるな"
+        text = "聞こえる.聞こえない.聞こえます.聞こえません.聞こえた.聞こえなかった.聞こえました.聞こえませんでした.聞こえて.聞こえなくて.聞こえられる.聞こえられない.聞こえさせる.聞こえさせない.聞こえさせられる.聞こえさせられない.聞こえろ.聞こえるな"
         # text = "聞えるんだよ"
         # text = text
         print('Input : \n', text, '\n')
         result = self.tagger.parse(text) #or parseNBest(n, text)
-        print('Output : \n', result)
+        print('Output : \n')
         result = result.splitlines() #splitLines untuk pengelompokan tabel berdasarkan kata yang displit MeCab
 
         # inisialisasi data untuk menampung hasil MeCab
@@ -76,7 +76,12 @@ class Parse():
             if (values == ['EOS']):
                 continue
             data.append(values)
-        print(data)
+        # pprint(data)
+        tester = ''
+        for d in range(len(data)):
+            tester += data[d][0] + ' '
+        print(tester)
+        print()
         # exit()
         # inisialisasi sebelum dilakukan parsing
         conj = False
@@ -132,15 +137,17 @@ class Parse():
                     new_kList = []
                     new_hiList = []
                     if hiraganalist:
-                        for c in kanjilist:
+                        for index, c in enumerate(kanjilist):
                             c_code = ord(c)
                             # print(c , c_code)
                             if (0x3040 <= c_code <= 0x309F):
+                                # print(c , c_code)
                                 for c1 in hiraganalist:
                                     # check if reading and word have the same char
                                     if (c == c1):
                                         # check if 
                                         h_index = hiraganalist.index(c1)
+                                        # print(h_index)
                                         if (h_index != 0):
                                             str_hi = ''
                                             for h in range(h_index):
@@ -149,13 +156,19 @@ class Parse():
                                         # this will remove the current word and earlier index
                                         # to prevent checking the same character
                                         hiraganalist = hiraganalist[h_index+1:]
+                                        
                                         kanjilist2.remove(c1)
                                         
                                         # print(hiraganalist)
                                         break
                             else:
                                 new_kList.append(c)
-                    # print(kanjilist2, hiraganalist)
+                                if(index == len(kanjilist) - 1):
+                                    if (hiraganalist):
+                                        str_hi = ''.join(hiraganalist)
+                                        new_hiList.append(hiraganalist)
+                                    
+                    # print(new_kList, hiraganalist)
                     # str_kanjilist = ''.join(kanjilist2)
                     # str_hiraganalist = ''.join(hiraganalist)
                     # print(str_kanjilist, str_hiraganalist)
@@ -196,7 +209,7 @@ class Parse():
             #         pass
 
             
-            
+            # print(conj, inputKata, data[i][0])
             # fix combined phrase with non-independent verb and final-form also not actially verb
             # ex : ある can be verb or pronomina
             try:
@@ -224,14 +237,18 @@ class Parse():
                     conj = True
                 # print(conj, inputKata, data[i][0])
                 if (('非自立' in data[i+1][4] and not ('動詞' in data[i][4] or '形容詞' in data[i][4])) 
-                    or ('接尾辞' in data[i+1][4] and not data[i+1][5])):
+                    or (('接尾辞' in data[i+1][4] and not data[i+1][5]))):
                     conj = True 
                     # prevent combining word if current word is particle
                     # and not particle that attaches to a phrase
+                    # and '接続助詞' not in data[i][4]) -> fix combined oresama
                     if (('助詞' in data[i][4] and ('準体助詞' not in data[i][4] and '接続助詞' not in data[i][4]))):
                         conj = False
                 # print(conj, inputKata, data[i][0])
-                if ('の' in data[i][3] and ('助動詞-ダ' in data[i+1][5] or '助動詞-デス' in data[i+1][5])):
+                # 意志推量形 fix darou & deshou
+                if ('の' in data[i][3] 
+                    and (('助動詞-ダ' in data[i+1][5] and '意志推量形' not in data[i+1][6]) 
+                         or ('助動詞-デス' in data[i+1][5] and '意志推量形' not in data[i+1][6]))):
                     conj = True
                     if ('助動詞-ダ' in data[i+1][5]):
                         katadasar = ['ので', 'ノデ']
@@ -276,11 +293,17 @@ class Parse():
                         else :
                             conj = False
                             inputKata = True
-                            
+                        
+                    # 接尾辞 = suffix = setsubiji
                     # fix noun suffix like 者 (orang) -> 冒険者 (Petualang) 医者 (Dokter)
-                    if ('接尾辞' in data[i][4] and 'サ変可能' in data[i-1][4]):
+                    # サ変可能 fix for noun like 冒険 (berpetualang)
+                    # 代名詞 fix for pronoun like 俺 + 様
+                    if ('接尾辞' in data[i][4] and ('サ変可能' in data[i-1][4] or '代名詞' in data[i-1][4] or '格助詞' in data[i+1][4])):
                         inputKata = True
                         conj = False
+                        k_temp = ''
+                        k_temp += '接尾辞'+'-'+data[i][3]
+                        kelompokKataKerja.append(k_temp)
 
                     # fix conjuctive particle -Te that has 非自立 (non-independent) form on the next iteration
                     # ex : 聞こえてきて [kikoe(verb -> base = 聞く) -te(particle) -ki(non-independent) -te(particle)]
@@ -337,6 +360,10 @@ class Parse():
                         katadasar = [data[i][3], data[i][2]]
                         katadasar[1] = self.furigana(katadasar[1], 'hiragana')
                         temp[2] = katadasar
+                        if ('意志推量形' in data[i][6]):
+                            katadasar = [data[i][0], data[i][1]]
+                            katadasar[1] = self.furigana(katadasar[1], 'hiragana')
+                            temp[2] = katadasar
 
                         if ('助詞' in data[i][4]):
                             temp[4] = 'particle'
@@ -374,7 +401,7 @@ class Parse():
 
 if (__name__ == "__main__"):
     parse = Parse()
-    a = parse.jpParse1("遊びしています")
+    a = parse.jpParse1("さぁ、俺様の可愛さにひれ伏しな")
     pprint(a)
     # for x in a:
     #     if x[1]:

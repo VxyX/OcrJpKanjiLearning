@@ -52,7 +52,7 @@ class Dict(QWidget):
         self.winLayout.addWidget(self.content)
         # set transparancy
         # self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.SplashScreen)
 
         self.setLayout(self.winLayout)
         # self.show()
