@@ -1,11 +1,13 @@
-from PyQt5.QtWidgets import QMainWindow, QApplication
-from PyQt5 import uic
+import typing
+from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget
+from PyQt5 import QtCore, uic
 import sys
-from screen import ScreenShot, TextScreen
 
-class Gui(QMainWindow):
+import menu
+
+class MainUi(QMainWindow):
     def __init__(self):
-        super(Gui, self).__init__()
+        super().__init__()
 
         # initialize
         self.isStart = False
@@ -14,53 +16,45 @@ class Gui(QMainWindow):
         # load .ui file
         uic.loadUi("src/gui/mainui2.ui", self)
 
-        # 
-        self.dicLang.setItemData(0, 'id')
-        self.dicLang.setItemData(1, 'en')
-        self.transLang.setItemData(0, 'id')
-        self.transLang.setItemData(1, 'en')
+        self.mainPanel.insertWidget(0, menu.TranslatePage())
+        self.mainPanel.insertWidget(1, menu.BookmarkPage())
+        self.mainPanel.insertWidget(2, menu.SettingsPage())
+        self.mainPanel.insertWidget(3, menu.AboutPage()) 
 
-        self.transLang.currentIndexChanged.connect(self.checkTransLangIndexChange)
-        self.dicLang.setEnabled(False)
-        self.checkDiffLang.stateChanged.connect(self.checkDiffLangStateChange)
-        self.startBtn.clicked.connect(self.startScreen)
+        self.translateBtn.clicked.connect(lambda: self.switchPage(0))
+        self.bookmarkBtn.clicked.connect(lambda: self.switchPage(1))
+        self.settingsBtn.clicked.connect(lambda: self.switchPage(2))
+        self.aboutBtn.clicked.connect(lambda: self.switchPage(3))
+
+        self.mainPanel.setCurrentIndex(0)
 
         # show screen
         self.show()
 
-    def startScreen(self):
+    def switchPage(self, index):
+        self.mainPanel.setCurrentIndex(index)
+        pass
+################## Translate Menu ##################
+    # call screen.py and textscreen.py
+################## Translate Menu ##################
 
-        if not self.isStart:
-            self.isStart = True
-            self.screen = ScreenShot()
-            self.startBtn.setText("Stop")
-            
-            print('click')
-            # Thread(target=self.screen.show()).start()
-            # Thread(target=self.textScreen.show()).start()
-        else:
-            self.isStart = False
-            self.screen.closeScreen()
-            self.startBtn.setText("Start")
-            # Thread(target=self.screen.close()).start()
-            # Thread(target=self.textScreen.close()).start()
-            return
-        
-    def checkDiffLangStateChange(self, state):
-        if state == 2:  # Qt.Checked
-            # print('Checkbox dicentang')
-            self.dicLang.setEnabled(True)
-        else:
-            # print('Checkbox tidak dicentang')
-            i = self.transLang.currentIndex()
-            self.dicLang.setCurrentIndex(i)
-            # print(i)
-            self.dicLang.setEnabled(False)
-    
-    def checkTransLangIndexChange(self, index):
-        # print(self.trasLang.currentData())
-        if (self.checkDiffLang.checkState() == 0):
-            self.dicLang.setCurrentIndex(index)
+################## Bookmark Menu ##################
+class BookmarkPage(QWidget):
+    def __init__(self):
+        super().__init__()
+################## Bookmark Menu ##################
+
+################## Pengaturan Menu ##################
+class SettingsPage(QWidget):
+    def __init__(self):
+        super().__init__()
+################## Pengaturan Menu ##################
+
+################## Info App Menu ##################
+class InfoAppPage(QWidget):
+    def __init__(self):
+        super().__init__()
+################## Info App Menu ##################
             
 
 
@@ -68,5 +62,5 @@ class Gui(QMainWindow):
     
 if (__name__ == "__main__"):
     app = QApplication(sys.argv)
-    gui = Gui()
+    gui = MainUi()
     app.exec_()

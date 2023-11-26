@@ -3,7 +3,7 @@ import pyautogui
 import time
 from PyQt5.QtWidgets import QMainWindow, QApplication, QSizeGrip
 from PyQt5 import uic
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QThread
 import sys
 
 from txtscreen import TextScreen
@@ -137,6 +137,12 @@ class ScreenShot(QMainWindow):
         height = max(self.minimumHeight(), self.height() + delta.y())
         self.resize(self.width(), height)
 
+    def closeScreen(self):
+        self.textScreen.clearTxt()
+        self.close()
+        self.textScreen.close()  
+################## End of Window Method ######################
+    
     def screenshot(self):
         if not self.takingss:
             self.takingss = True
@@ -163,13 +169,12 @@ class ScreenShot(QMainWindow):
             # Delay (just in case)
             time.sleep(0.6)
 
-            self.textScreen.txtProcessing()
+            try:
+                self.textScreen.txtProcessing()
+            except Exception as e:
+                print(e)
             self.takingss = False
-    
-    def closeScreen(self):
-        self.textScreen.clearTxt()
-        self.close()
-        self.textScreen.close()    
+      
     
    
 if (__name__ == "__main__"):

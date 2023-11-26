@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        @font-face {
+            font-family: kanji-stroke-order2;
+            src: url(../../font/KanjiStrokeOrders_v4.004.ttf);
+        }
         ruby {
             margin-right: 5px;
             margin-left: 5px;
@@ -16,13 +20,35 @@
             height: 70px;
             width:  70px;
         }
+        div#tags{
+            display: block;
+        }
+        div.group_tag1, div.group_tag2{
+            display: inline;
+        }
+        p.tag1{
+            margin: 10px;
+            background-color: black;
+            color: white;
+        }
+        p.tag2{
+            margin: 10px;
+            background-color: rgb(153, 0, 255);
+            color: white;
+        }
     </style>
     <title>Document</title>
 </head>
 <body>
-    <p></p> //word
-    <p></p> //animate kanji
-    <p></p> //some data (jlpt, part of speech, reading)
-    <p></p> //definition
+    <div id="word">
+
+    </div>
+    <div id="grammar-info">
+
+    </div>
+    <div id="senses">
+        
+    </div>
+     
 </body>
 </html>

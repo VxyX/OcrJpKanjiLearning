@@ -16,7 +16,6 @@ class Capture():
 
         pass
     
-    @staticmethod
     def imgPreProcessing(self):
         pass
 
