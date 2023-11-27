@@ -5,7 +5,7 @@ class Translate():
         import translators as ts
         self.ts = ts
         pass
-    def translate(self, text, translator, target_lang, from_lang='ja'):
+    def translate(self, text, target_lang, from_lang='ja', translator='bing'):
         languages = self.ts.get_languages(translator)
         # print(languages)
         if target_lang in languages:

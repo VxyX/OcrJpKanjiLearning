@@ -11,13 +11,13 @@ from txtscreen import TextScreen
 from pprint import pprint
 
 class ScreenShot(QMainWindow):
-    def __init__(self):
+    def __init__(self, txtScreen : TextScreen):
         super(ScreenShot, self).__init__()
 
         # load file
         self.uifile = "src/gui/screenCapture copy.ui"
         self.stylefile = "src/style/screenshot.qss"
-        self.textScreen = TextScreen()
+        self.textScreen = txtScreen
         uic.loadUi(self.uifile, self)
         with open(self.stylefile,"r") as fh:
             self.setStyleSheet(fh.read())
@@ -43,7 +43,6 @@ class ScreenShot(QMainWindow):
 
         # show window
         self.show()
-        self.textScreen.show()
 
         # adjust element
         self.adjustGripSize(10)

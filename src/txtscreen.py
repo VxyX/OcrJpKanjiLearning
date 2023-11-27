@@ -16,16 +16,18 @@ from ocr import Capture
 
 
 class TextScreen(QMainWindow):
-    def __init__(self):
+    def __init__(self, tl_lang='en', kamus_lang='en'):
         super(TextScreen, self).__init__()
 
         import translate
         self.tl = translate.Translate()
-        self.kamus = Dict()
-        self.showKamus = False
         self.globTxtPos = None
         self.globTxtRect = None
         self.jpHtmlFile = 'src/html/jpText.html'
+        self.tl_lang = tl_lang
+        self.kamus_lang = kamus_lang
+        self.kamus = Dict(self.kamus_lang)
+        self.showKamus = False
         self.dataKamus = {}
         self.threads = {}
         # self.jpHtmlFile = 'tes.html'
@@ -68,7 +70,12 @@ class TextScreen(QMainWindow):
         self.verticalLayout.addWidget(self.tlTxt, stretch=2)
   
         self.clearTxt()
+        self.show()
         
+    def close(self) -> bool:
+        self.kamus.close()
+        return super().close()
+
     def eventFilter(self, source, event):
         if (event.type() == QEvent.MouseButtonPress):
             if event.button() == Qt.LeftButton:
@@ -77,6 +84,7 @@ class TextScreen(QMainWindow):
                 if self.showKamus:
                     rect = self.kamus.geometry()
                     if (self.oldPos not in rect):
+                        self.kamus.clearTxt()
                         self.kamus.hide()
                         self.showKamus = False
 
@@ -187,8 +195,8 @@ class TextScreen(QMainWindow):
             if(word[2]):
                 # self.dataKamus.append(self.kamus.cariKata(word[2][0]))
                 self.threads[count_kata] = CallApiThread(count_kata, word[2][0], self.kamus)
-                self.threads[count_kata].start()
-                self.threads[count_kata].data_kamus.connect(self.getDataKamus)
+                # self.threads[count_kata].start()
+                # self.threads[count_kata].data_kamus.connect(self.getDataKamus)
                 for lemma in word[2]:
                     if (jpP['data-katadasar']):
                         jpP['data-katadasar'] += ','+lemma
@@ -305,7 +313,7 @@ class TextScreen(QMainWindow):
             jpDiv.append(jpP)
         # print(jpText)
         # return
-        tlTxt = self.tl.translate(jpText,'bing','id')
+        tlTxt = self.tl.translate(jpText,self.tl_lang)
         # tlDiv.append(tlTxt)
 
         self.setText(jpDiv, tlTxt)
@@ -406,8 +414,7 @@ class TextScreen(QMainWindow):
     # jika fungsi memiliki parameter, typedata harus ditentukan pada @pyqtSlot
     # jika ingin passing dengan class, makah class harus menginherit QObject
     @pyqtSlot(str, list, str, str, str, str, str, str)
-    def tampilDetailKata(self, word, rect, kanji, reading, lemma_dat, conj_dat, class_dat, indeks):
-        # print(self.viewJp.mapToGlobal(QPoint(x,y)))
+    def tampilDetailKata(self, word, rect, kanji, reading, lemma_dat, conj_dat, class_dat, indeks):        
         print('word : ', word, '\nkanji : ', kanji, '\nreading : ', reading, '\nlemma : ', lemma_dat, '\nconj_dat : ', conj_dat, '\nclass_dat : ', class_dat, '\nindex : ', indeks, '\n')
 
         kanji = kanji.split(',')
@@ -418,28 +425,19 @@ class TextScreen(QMainWindow):
 
         self.globTxtPos = self.jpTxt.mapToGlobal(QPoint(rect[0],rect[1]))
         self.globTxtRect = QRect(self.globTxtPos.x(), self.globTxtPos.y(), rect[0] - rect[2], rect[1] - rect[3])
-
-        # if (kanji and reading):
-        #     self.kamus.search_jisho()
-
         self.kamus.movePanel(self.globTxtPos.x(), self.globTxtPos.y())
-        try:
-            if self.dataKamus[indeks]:
-                self.kamus.tampilKamus2(word, kanji, reading, lemma_dat, conj_dat, class_dat, self.dataKamus[indeks])
-        except Exception as e:
-            print("gagal")
-            self.kamus.show()
-            self.setFocus()
-            self.showKamus = True
-            # while not self.dataKamus[indeks]:
-            #     if self.dataKamus[indeks]:
-            #         self.kamus.tampilKamus2(word, kanji, reading, lemma_dat, conj_dat, class_dat, self.dataKamus[indeks])
-            #         break
-                # time.sleep(0.01)
+        
+        # agar tidak terlalu sering melakukan request API setiap melakukan screenshot
+        if indeks not in self.dataKamus:
+            self.threads[indeks].start()
+            self.threads[indeks].data_kamus.connect(self.getDataKamus)
+            self.threads[indeks].finished.connect(lambda: self.kamus.tampilKamus(word, kanji, reading, lemma_dat, conj_dat, class_dat, self.dataKamus[indeks]))
         else:
-            self.kamus.show()
-            self.setFocus()
-            self.showKamus = True
+            self.kamus.tampilKamus(word, kanji, reading, lemma_dat, conj_dat, class_dat, self.dataKamus[indeks])
+        self.kamus.show()
+        self.setFocus()
+        self.showKamus = True
+        
     
 # for javascript debugging purpose only
 class CustomWebEnginePage(QWebEnginePage):
@@ -461,6 +459,7 @@ class CallApiThread(QThread):
     def run(self):
         data = self.kamus.cariKata(self.word)
         self.data_kamus.emit(self.index, data)
+        time.sleep(0.05)
         pass
 
     def stop(self):

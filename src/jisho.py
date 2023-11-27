@@ -15,7 +15,7 @@ import io
 from svg.path import parse_path
 from pprint import pprint
 
-import translate
+from translate import Translate
 from parsing import Parse
 
 # cwd = os.getcwd()  # Get the current working directory (cwd)
@@ -23,9 +23,12 @@ from parsing import Parse
 # print("Files in %r: %s" % (cwd, files))
 
 class Dict(QWidget):
-    def __init__(self, x=100, y=100):
+    def __init__(self, kamus_lang='en', x=100, y=100):
         super(Dict, self).__init__()
 
+        self.kamus_lang = kamus_lang
+        if self.kamus_lang == 'id':
+            self.tl = Translate()
         self.kanjivg = None
         self.word = None
         self.meanings = None
@@ -75,7 +78,14 @@ class Dict(QWidget):
     def movePanel(self, delta):
         self.move(self.x() + delta.x(), self.y() + delta.y())
 
-    def tampilKamus2(self, word, kanjis, kanji_readings, lemma, inflec, classif, kamus_dat):
+    def clearTxt(self):
+        js = f"""
+        document.getElementById("word").innerHTML = ' ';
+        document.getElementById("senses").innerHTML = ' ';
+        """
+        self.content.page().runJavaScript(js)
+
+    def tampilKamus(self, word, kanjis, kanji_readings, lemma, inflec, classif, kamus_dat):
         
         jisho_dat = kamus_dat
         if not jisho_dat:
@@ -203,71 +213,6 @@ class Dict(QWidget):
         self.content.page().runJavaScript(js)
         pass
 
-    def tampilKamus(self, word, kanji, kanji_reading, lemma, inflec, classif):
-        # Data
-        # [0] -> Kanji
-        # [1] -> Reading
-        # [2] -> JLPT Level
-        # [3][0] -> Part of Speech
-        # [3][1] -> Meanings (list)
-        inflection = False
-        inflection_list = []
-        if (not (word == lemma[0] or word == lemma[1])):
-            inflection = True
-
-        
-        data = self.cariKata(word, part_of_speech=classif)
-
-        container = self.dictTxt.new_tag("div")
-        header_cont = self.dictTxt.new_tag("div") # word
-        info_cont = self.dictTxt.new_tag("div") # reading, jlpt, part o spch
-        meanings_cont = self.dictTxt.new_tag("div") # meanings
-        kvg_cont = self.dictTxt.new_tag("div") # writing animation
-
-        # Header Section
-        titleP = self.dictTxt.new_tag("p")
-        titleP['class'] = 'title'
-        if (kanji and kanji_reading):
-            kan = ''
-            first_part = ''
-            second_part = ''
-            kan = self.dictTxt.new_tag("ruby")
-            kan.append(kanji)
-            furi = self.dictTxt.new_tag("rt")
-            furi.append(kanji_reading)
-            kan.append(furi)
-            
-            split_index = word.find(kanji)
-            if split_index != -1:
-                first_part = word[:split_index] 
-                second_part = word[split_index + len(kanji):]
-            if first_part:
-                titleP.append(first_part)
-            if kanji:
-                titleP.append(kan)
-            if second_part:
-                titleP.append(second_part)
-        else :
-            titleP.append(word)
-        header_cont.append(titleP)
-
-        # Word Info Section
-        readP = self.dictTxt.new_tag("p")
-        readP.append(data[1])
-        jlptP = self.dictTxt.new_tag("p")
-        jlptP.append(data[2])
-        p_of_sP = self.dictTxt.new_tag("p")
-        p_of_sP.append(data[3])
-
-        container.append(header_cont)
-        # container.append(header_cont)
-        # container.append(header_cont)
-        # container.append(header_cont)
-
-
-
-        pass
-
     # Fungsi untuk mencari makna kata di Jisho menggunakan Jisho API
     def cariKata(self, word, reading=None, part_of_speech=None):
 
@@ -314,6 +259,22 @@ class Dict(QWidget):
                     meanings = sense["english_definitions"]
                     # for tl in meanings:
                     #     meanings_tl = translate.translate_text(tl,'bing','id','en')
+                    if self.kamus_lang == 'id':
+                        if more_info:
+                            temp_more_info = []
+                            for one in more_info:
+                                temp_more_info.append(self.tl.translate(one,self.kamus_lang,'en'))
+                            more_info = temp_more_info
+                        if kelas:
+                            temp_kelas = []
+                            for one in kelas:
+                                temp_kelas.append(self.tl.translate(one,self.kamus_lang,'en'))
+                            kelas = temp_kelas
+                        if meanings:
+                            temp_meanings = []
+                            for one in meanings:
+                                temp_meanings.append(self.tl.translate(one,self.kamus_lang,'en'))
+                            meanings = temp_meanings
                     senses.append([more_info, kelas, meanings])
                     count_sense += 1
                 # kelas = [",".join(sense["parts_of_speech"]) for sense in result["senses"]]
@@ -336,8 +297,8 @@ class CustomWebEnginePage(QWebEnginePage):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    widget = Dict()
-    search_word = '甘えすぎ'
+    widget = Dict('id')
+    search_word = 'すぎ'
     meanings = widget.cariKata(search_word)
     pprint(meanings)
     # print(f"Makna kata {japanese_word}: {', '.join(meanings)}")

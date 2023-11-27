@@ -519,7 +519,7 @@ if (__name__ == "__main__"):
     # print(f'{filepath}')
     # print(filepath)
     parse = Parse()
-    a = parse.segmentasiTeks("やる気出しすぎ、甘えすぎ ")
+    a = parse.segmentasiTeks("学生らしく ")
     pprint(a)
     # print(parse.furigana('様々'))
     # for x in a:
