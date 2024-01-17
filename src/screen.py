@@ -8,23 +8,27 @@ import sys
 
 from txtscreen import TextScreen
 
+from imgpreproc import ImProc
+
 from pprint import pprint
 
-class ScreenShot(QMainWindow):
+class ScreenCapture(QMainWindow):
     def __init__(self, txtScreen : TextScreen):
-        super(ScreenShot, self).__init__()
+        super(ScreenCapture, self).__init__()
 
         # load file
         self.uifile = "src/gui/screenCapture copy.ui"
         self.stylefile = "src/style/screenshot.qss"
         self.textScreen = txtScreen
+        self.imgProcScreen = ImProc()
+        self.imgProcScreenShow = False
         uic.loadUi(self.uifile, self)
         with open(self.stylefile,"r") as fh:
             self.setStyleSheet(fh.read())
 
         # set transparancy
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setWinOpacity = 1
         self.setWindowOpacity(self.setWinOpacity)
         self.takingss = False
@@ -40,12 +44,14 @@ class ScreenShot(QMainWindow):
         QSizeGrip(self.cornerGripRB)
 
         self.ScreenShotBtn.clicked.connect(self.screenshot)
+        self.PreProcessBtn.clicked.connect(self.tampilPreprocessImg)
 
         # show window
         self.show()
 
         # adjust element
-        self.adjustGripSize(10)
+        self.resize(600,200)
+        self.adjustGripSize(15)
         self.resizeFunc = None
         self.getCornerCoor()
 
@@ -138,9 +144,10 @@ class ScreenShot(QMainWindow):
 
     def closeScreen(self):
         self.textScreen.clearTxt()
+        self.imgProcScreen.closeScreen()
         self.close()
         self.textScreen.close()  
-################## End of Window Method ######################
+################## End of Custom Window Method ######################
     
     def screenshot(self):
         if not self.takingss:
@@ -160,6 +167,9 @@ class ScreenShot(QMainWindow):
 
             # Save gambar menjadi file
             screenshot.save("screenshot.png")
+            screenshot.save("imgpreproc.png")
+            self.imgProcScreen.setImage("imgpreproc.png")
+            
 
             # Mengembalikan opacity semula
             # self.setWindowOpacity(self.setWinOpacity)
@@ -169,14 +179,29 @@ class ScreenShot(QMainWindow):
             time.sleep(0.6)
 
             try:
-                self.textScreen.txtProcessing()
+                print(self.imgProcScreen.isEnabled_())
+                if self.imgProcScreen.isEnabled_():
+                    self.imgProcScreen.processImg('imgpreproc.png')
+                    self.textScreen.txtProcessing('processedimg.png')
+                    pass
+                else:
+                    self.textScreen.txtProcessing('screenshot.png')
             except Exception as e:
                 print(e)
+            
             self.takingss = False
       
+    def tampilPreprocessImg(self) :
+        if not self.imgProcScreen.isShown():
+            self.imgProcScreen.show()
+            self.imgProcScreenShow = True
+        else:
+            self.imgProcScreen.raise_()
+
+        pass
     
    
 if (__name__ == "__main__"):
     app = QApplication(sys.argv)
-    screen = ScreenShot()
+    screen = ScreenCapture(TextScreen())
     app.exec_()

@@ -1,17 +1,17 @@
 
-#cornerGripLB{border-left: 2px solid rgb(181, 104, 220); border-bottom:2px solid rgb(181, 104, 220);}
-#cornerGripLT{border-left:2px solid rgb(181, 104, 220); border-top:2px solid rgb(181, 104, 220);}
-#cornerGripRB{border-right:2px solid rgb(181, 104, 220); border-bottom:2px solid rgb(181, 104, 220);}
-#cornerGripRT{border-right:2px solid rgb(181, 104, 220); border-top:2px solid rgb(181, 104, 220);}
+#cornerGripLB{border-left: 3px solid rgb(141, 55, 184); border-bottom:3px solid rgb(141, 55, 184);}
+#cornerGripLT{border-left:3px solid rgb(141, 55, 184); border-top:3px solid rgb(141, 55, 184);}
+#cornerGripRB{border-right:3px solid rgb(141, 55, 184); border-bottom:3px solid rgb(141, 55, 184);}
+#cornerGripRT{border-right:3px solid rgb(141, 55, 184); border-top:3px solid rgb(141, 55, 184);}
 
-#bottomGrip{border-bottom:1px dashed rgb(181, 104, 220);}
-#leftGrip{border-left:1px dashed rgb(181, 104, 220);}
-#topGrip{border-top:1px dashed rgb(181, 104, 220);}
-#rightGrip{border-right:1px dashed rgb(181, 104, 220);}
+#bottomGrip{border-bottom:1px dashed rgb(141, 55, 184);}
+#leftGrip{border-left:1px dashed rgb(141, 55, 184);}
+#topGrip{border-top:1px dashed rgb(141, 55, 184);}
+#rightGrip{border-right:1px dashed rgb(141, 55, 184);}
 
 
 #centralwidget {
-	background-color: rgba(145, 14, 227, 0.01);
+	background-color: rgba(145, 14, 227, 0.05);
 }
 
 #innerwidget {

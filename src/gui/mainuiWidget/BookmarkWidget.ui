@@ -6,79 +6,55 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>586</width>
-    <height>534</height>
+    <width>419</width>
+    <height>546</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="leftMargin">
+    <number>3</number>
+   </property>
+   <property name="rightMargin">
+    <number>3</number>
+   </property>
    <item>
-    <widget class="QTabWidget" name="tabWidget">
+    <widget class="QStackedWidget" name="BookmarkPanel">
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="tab">
-      <attribute name="title">
-       <string>Tab 1</string>
-      </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_2">
+     <widget class="QWidget" name="halaman1">
+      <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
-        <widget class="QWidget" name="widget" native="true">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <layout class="QHBoxLayout" name="horizontalLayout">
+        <widget class="QWidget" name="widget_2" native="true">
+         <layout class="QVBoxLayout" name="verticalLayout_3">
           <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
            <number>0</number>
           </property>
           <property name="rightMargin">
            <number>0</number>
           </property>
-          <property name="bottomMargin">
-           <number>0</number>
-          </property>
           <item alignment="Qt::AlignRight">
-           <widget class="QPushButton" name="pushButton">
+           <widget class="QPushButton" name="hapusBtn">
             <property name="text">
-             <string>PushButton</string>
+             <string>Hapus</string>
             </property>
            </widget>
           </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QWidget" name="widget_2" native="true">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <layout class="QVBoxLayout" name="verticalLayout_3">
-          <property name="topMargin">
-           <number>0</number>
-          </property>
           <item>
            <widget class="QScrollArea" name="scrollArea">
             <property name="widgetResizable">
              <bool>true</bool>
             </property>
-            <widget class="QWidget" name="scrollAreaWidgetContents">
+            <widget class="QWidget" name="scrollWidget">
              <property name="geometry">
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>524</width>
-               <height>432</height>
+               <width>393</width>
+               <height>461</height>
               </rect>
              </property>
             </widget>
@@ -89,10 +65,19 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_2">
-      <attribute name="title">
-       <string>Tab 2</string>
-      </attribute>
+     <widget class="QWidget" name="halaman2">
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item alignment="Qt::AlignLeft">
+        <widget class="QPushButton" name="kembaliBtn">
+         <property name="text">
+          <string>Kembali</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="detailWidget" native="true"/>
+       </item>
+      </layout>
      </widget>
     </widget>
    </item>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        *{
+            color: rgb(141, 55, 184);
+            background-color: black;
+            color: white;
+        }
+        html{
+            height: 100%;
+            box-sizing: border-box;
+            border: 2px solid rgb(48, 48, 48);
+            border-radius: 5px;
+        }
+
+        @font-face {
+            font-family: kanji-stroke-order2;
+            src: url(../../font/KanjiStrokeOrders_v4.004.ttf);
+        }
+
+        div#word{
+            justify-content: center;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        ruby {
+            font-size: 18px;
+            margin-right: 5px;
+            margin-left: 5px;
+        }
+
+        rt {
+            font-size: 50%;
+            vertical-align: super;
+        }
+        img{
+            height: 70px;
+            width:  70px;
+        }
+        div#grammar-info p{
+            white-space: pre-line;
+            font-size: 13px;
+            font-style: italic;
+        }
+        div#tags{
+            display: block;
+        }
+        div.group_tag1, div.group_tag2{
+            display: flex;
+        }
+
+        p.tags{
+            width: fit-content;
+            margin: 3px;
+            padding-top: 2px;
+            padding-bottom: 2px;
+            padding-left: 5px;
+            padding-right: 5px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        p.tag1{
+            background-color: rgb(105, 55, 138);
+            color: white;
+        }
+        p.tag2{
+            background-color: rgb(94, 0, 156);
+            color: white;
+        }
+
+
+        div#bookmarkBtn{
+            position: fixed;
+            top: 10px;
+            right: 10px;
+        }
+        div#bookmarkBtn input[type=checkbox]{
+            transform: scale(1.5);
+        }
+    </style>
+    <title>Document</title>
+</head>
+<body>
+    <div id="bookmarkBtn">
+        <input id="myCheckbox" type="checkbox">
+    </div>
+    <div id="word">
+
+    </div>
+    <div id="grammar-info">
+
+    </div>
+    <div id="senses">
+        
+    </div>
+     
+</body>
+</html>

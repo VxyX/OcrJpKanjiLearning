@@ -14,19 +14,23 @@ from jisho import Dict
 from parsing import Parse
 from ocr import Capture
 
-
+# tl_lang = '', '', ''
 class TextScreen(QMainWindow):
-    def __init__(self, tl_lang='en', kamus_lang='en'):
+    def __init__(self, kamusPage:Dict, tl_lang='en'):
         super(TextScreen, self).__init__()
 
-        import translate
-        self.tl = translate.Translate()
+        try:
+            import translate
+            self.tl = translate.Translate()
+        except Exception as e:
+            print(e)
+            return None
         self.globTxtPos = None
         self.globTxtRect = None
         self.jpHtmlFile = 'src/html/jpText.html'
         self.tl_lang = tl_lang
-        self.kamus_lang = kamus_lang
-        self.kamus = Dict(self.kamus_lang)
+        self.kamus = kamusPage
+        print(self.kamus)
         self.showKamus = False
         self.dataKamus = {}
         self.threads = {}
@@ -42,7 +46,7 @@ class TextScreen(QMainWindow):
         # with open(self.tlHtmlFile, "r", encoding='utf-8') as file:
         #     self.tlTxt = BeautifulSoup(file, "html.parser")
 
-        self.jpBody = self.jpHtml.find('body')
+        self.jpBody = self.jpHtml.find('div', class_='jp_txt')
         # self.tlBody = self.tlTxt.find('body')
         
         # set content
@@ -60,14 +64,31 @@ class TextScreen(QMainWindow):
         # Thus should install the event handler manually
         self.jpTxt.focusProxy().installEventFilter(self)
         self.tlTxt.viewport().installEventFilter(self)
+        if tl_lang == 'both':
+            self.tlTxt2 = QTextBrowser()
+            self.tlTxt2.setStyleSheet("font-family: Arial; font-size: 16px; margin: 5px; font-weight:bold; border:none;")
+            self.tlTxt2.viewport().installEventFilter(self)
+            pass
+
         # Objek pyweb dalam WebView harus dibuat sebelum run js
         self.channel = QWebChannel()
         self.channel.registerObject('pyweb', self)
         self.channel.registerObject('translate', self)
         self.jpTxt.page().setWebChannel(self.channel)
 
+        # js = """
+        # // objek harus diinisialisasi untuk menghubungkan fungsi py ke js
+        #     let pyweb;
+        #     new QWebChannel(qt.webChannelTransport, function (channel) {
+        #         pyweb = channel.objects.pyweb;
+        #     });
+        # """
+        # self.jpTxt.page().runJavaScript(js)
+
         self.verticalLayout.addWidget(self.jpTxt, stretch=2)
         self.verticalLayout.addWidget(self.tlTxt, stretch=2)
+        if tl_lang == 'both':
+            self.verticalLayout.addWidget(self.tlTxt2, stretch=2)
   
         self.clearTxt()
         self.show()
@@ -97,32 +118,29 @@ class TextScreen(QMainWindow):
         return super().eventFilter(source, event)
     
     # txtProcessing -> need to optimize furigana function more if can...
-    # Problems:
-    # - romaji option for furigana
-    # - furigana on specific kanji ex. -> 追<お> い 込<こ> み
-    # - romaji on specific kanji like above
+    # next:
     # - romaji on the whole text ex. -> 追<o> い<i> 込<ko> み<mi>
-    # currently:
-    # - devide kanji that have 2 hiragana in between ex. -> こんな 風<ふう> に
 
-
-    def setText(self, jpTxt, tlTxt):
+    def setText(self, jpTxt, tlTxt, tlTxt2 = None):
         self.jpBody.string = ''
         # self.tlBody.string = ''
         self.jpBody.append(jpTxt)
         # self.tlBody.append(tlTxt)
         self.jpTxt.loadFinished.connect(lambda ok: self.tlTxt.setText(tlTxt) if ok else None)
+        if self.tl_lang == 'both':
+            self.jpTxt.loadFinished.connect(lambda ok: self.tlTxt2.setText(tlTxt2) if ok else None)
  
-        self.saveTxt()
+        self.showTxt()
 
-    # public method -> screen.py
     def clearTxt(self):
-        self.jpBody.string = ''
+        self.jpBody.string = ""
         self.tlTxt.setText('')
-        self.saveTxt()
+        if self.tl_lang == 'both':
+            self.tlTxt2.setText('')
+            pass
+        self.showTxt()
 
-    #private method
-    def saveTxt(self):
+    def showTxt(self):
         with open(self.jpHtmlFile, 'w', encoding='utf-8') as file:
             file.write(str(self.jpHtml))
         # with open(self.tlHtmlFile, 'w', encoding='utf-8') as file:
@@ -130,16 +148,16 @@ class TextScreen(QMainWindow):
 
         self.jpTxt.setUrl(QUrl.fromLocalFile('/'+self.jpHtmlFile))
         # self.viewTl.setUrl(QUrl.fromLocalFile('/'+self.tlHtmlFile))
- 
-    @pyqtSlot()
-    def getTranslate(self, txt):
-        self.tltxt = txt
 
     # later note :
     # cut process if previous text is the same with current text
-    def txtProcessing(self): #public method
-        capture = Capture('screenshot.png')
+    def txtProcessing(self, img=None, furigana='hiragana'): #public method
+        if not img:
+            img = 'screenshot.png'
+        capture = Capture(img)
         parse = Parse()
+        self.dataKamus = {}
+        self.threads = {}
         
         jpDiv = self.jpHtml.new_tag('div')
         # tlDiv = self.tlTxt.new_tag('div')
@@ -150,36 +168,43 @@ class TextScreen(QMainWindow):
         kanji = ''
         kanji_list = []
         
+        capture.imgPreProcessing()
         jpText = capture.getText()
-        jpText = jpText.replace('\n',' ')
+        jpText = jpText.replace('\n','')
         print(jpText)
-        pattern = "[\u4e00-\ufaff]\s|[\u4e00-\ufaff]\s+|[\u4e00-\ufaff]\t"
-        pattern += "|[\u3040-\u309F]\s|[\u3040-\u309F]\s+|[\u3040-\u309F]\t" #hiragana
-        pattern += "|[\u30A0-\u30ff]\s|[\u30A0-\u30ff]\s+|[\u30A0-\u30ff]\t"
-        pattern += "|[\u4e00-\u9fff]\s|[\u4e00-\u9fff]\s+|[\u4e00-\u9fff]\t"
-        pattern = re.compile(pattern)
-        pattern = pattern.findall(jpText)
+
+        # this will remove the white space on JP char only, if the OCR takes both JP and Other Language
+        # pattern = "[\u4e00-\ufaff]\s|[\u4e00-\ufaff]\s+|[\u4e00-\ufaff]\t" #chinese characters
+        # pattern += "|[\u3040-\u309F]\s|[\u3040-\u309F]\s+|[\u3040-\u309F]\t" #hiragana
+        # pattern += "|[\u30A0-\u30ff]\s|[\u30A0-\u30ff]\s+|[\u30A0-\u30ff]\t" #katakana
+        # pattern += "|[\u4e00-\u9fff]\s|[\u4e00-\u9fff]\s+|[\u4e00-\u9fff]\t" #kanji
+        # pattern = re.compile(pattern)
+        # pattern = pattern.findall(jpText)
         # print(pattern)
-        for pat in pattern:
-            replace = pat.replace(' ','')
-            jpText = jpText.replace(pat, replace)
+        # for pat in pattern:
+        #     replace = pat.replace(' ','')
+        #     jpText = jpText.replace(pat, replace)
             
         # jpText = jpText.replace(' ','')
-        print(jpText)
+        # print(jpText)
         # jpText = jpText.replace(' ','')
         jpParseTxt = parse.segmentasiTeks(jpText)
 
         # pprint(jpParseTxt)
-        print()
+        # print()
         count_kata = -1
         for word in jpParseTxt:
             pattern2 = re.compile("[0-9]+|[a-zA-Z]+\'*[a-z]*")
             pattern2 = pattern2.findall(word[0])
+            jpIgnore = self.jpHtml.new_tag('div')
+            jpIgnore['class'] = 'ignore'
             if pattern2:
-                jpDiv.append(word[0]+' ')
+                jpIgnore.append(word[0]+' ')
+                jpDiv.append(jpIgnore)
                 continue
-            if (word[4] == 'symbol'):
-                jpDiv.append(word[0]+' ')
+            if (word[5] == 'symbol'):
+                jpIgnore.append(word[0]+' ')
+                jpDiv.append(jpIgnore)
                 continue
             count_kata += 1
             jpP = self.jpHtml.new_tag('p')
@@ -187,14 +212,15 @@ class TextScreen(QMainWindow):
             w = self.jpHtml.new_tag("ruby")
             kata = word[0]
             con = False
-            jpP['data-konjugasi'] = ''
+            jpP['data-tipekonjugasi'] = ''
+            jpP['data-bentukkonjugasi'] = ''
             jpP['data-kelas'] = ''
             jpP['data-katadasar'] = ''
             jpP['data-indekskata'] = str(count_kata)
 
             if(word[2]):
                 # self.dataKamus.append(self.kamus.cariKata(word[2][0]))
-                self.threads[count_kata] = CallApiThread(count_kata, word[2][0], self.kamus)
+                self.threads[count_kata] = CallApiThread(count_kata, word[2][0], self.kamus, reading=word[2][1])
                 # self.threads[count_kata].start()
                 # self.threads[count_kata].data_kamus.connect(self.getDataKamus)
                 for lemma in word[2]:
@@ -206,16 +232,24 @@ class TextScreen(QMainWindow):
 
             if(word[3]):
                 for conj in word[3]:
-                    if (jpP['data-konjugasi']):
-                        jpP['data-konjugasi'] += ','+conj
-                    else:
-                        jpP['data-konjugasi'] += conj
-            
+                    jpP['data-tipekonjugasi'] += conj + ','
+                    # if (jpP['data-tipekonjugasi']):
+                    #     jpP['data-tipekonjugasi'] += ','+conj
+                    # else:
+                    #     jpP['data-tipekonjugasi'] += conj
+
             if(word[4]):
+                for conj in word[4]:
+                    if (jpP['data-bentukkonjugasi']):
+                        jpP['data-bentukkonjugasi'] += ','+conj
+                    else:
+                        jpP['data-bentukkonjugasi'] += conj
+            
+            if(word[5]):
                 if (jpP['data-kelas']):
-                    jpP['data-kelas'] += ','+word[4]
+                    jpP['data-kelas'] += ','+word[5]
                 else:
-                    jpP['data-kelas'] += word[4]
+                    jpP['data-kelas'] += word[5]
             
             # data access helper:
             # word[1][0] -> kanji
@@ -225,6 +259,7 @@ class TextScreen(QMainWindow):
             if word[1]: # check if kanji exist in the data
                 temp_word = word[0]
                 temp_kanji = word[1][0]
+                # print(temp_kanji)
                 temp_read = word[1][1]
                 # print(temp_word, temp_kanji, temp_read)
                 w_list = list(word[0])
@@ -265,8 +300,13 @@ class TextScreen(QMainWindow):
                         rb['class'] = 'kanji'
                         rb.append(temp_kanji[k_index])
                         rt = self.jpHtml.new_tag("rt")
-                        rt['class'] = 'reading'
-                        rt.append(parse.convKanaRo(temp_read[k_index], 'hiragana'))
+                        
+                        if furigana == 'hiragana':
+                            rt['class'] = 'reading hiragana'
+                            rt.append(parse.convKanaRo(temp_read[k_index], 'hiragana'))
+                        elif furigana == 'romaji':
+                            rt['class'] = 'reading romaji'
+                            rt.append(parse.convKanaRo(temp_read[k_index], 'romaji'))
                         w.append(rb)
                         w.append(rt)
 
@@ -279,9 +319,21 @@ class TextScreen(QMainWindow):
                         temp_w = ''
                     else:
                         # print(letter)
-                        w.append(letter)
-                        con = True
-                        temp_word = temp_word.replace(letter,'',1)
+                        if furigana == 'hiragana':
+                            w.append(letter)
+                            con = True
+                            temp_word = temp_word.replace(letter,'',1)
+                        elif furigana == 'romaji':
+                            rb = self.jpHtml.new_tag("rb")
+                            rb['class'] = 'kana'
+                            rb.append(letter)
+                            rt = self.jpHtml.new_tag("rt")
+                            rt['class'] = 'reading romaji'
+                            rt.append(parse.convKanaRo(letter, 'romaji'))
+                            w.append(rb)
+                            w.append(rt)
+                            temp_word = temp_word.replace(letter,'',1)
+                            pass
 
                 # if the last letters iteration are not kanji,
                 # this will close the rb tag with rt tag,
@@ -308,15 +360,43 @@ class TextScreen(QMainWindow):
                 # kanji.append(rt)
 
             else:
-                jpP.append(kata)
+                if furigana == 'hiragana':
+                    rb = self.jpHtml.new_tag("rb")
+                    rb['class'] = 'kana'
+                    rb.append(kata)
+                    rt = self.jpHtml.new_tag("rt")
+                    w.append(rb)
+                    w.append(rt)
+                    jpP.append(w)
+                elif furigana == 'romaji':
+                    rb = self.jpHtml.new_tag("rb")
+                    rb['class'] = 'kana'
+                    rb.append(kata)
+                    rt = self.jpHtml.new_tag("rt")
+                    rt['class'] = 'reading romaji'
+                    rt.append(parse.convKanaRo(kata, 'reading romaji'))
+                    w.append(rb)
+                    w.append(rt)
+                    existing_classes = jpP.get('class')
+                    jpP['class'] = existing_classes + " furigana"
+                    jpP.append(w)
+                    pass
 
             jpDiv.append(jpP)
         # print(jpText)
         # return
-        tlTxt = self.tl.translate(jpText,self.tl_lang)
-        # tlDiv.append(tlTxt)
+        if self.tl_lang == 'both':
+            tlTxt = self.tl.translate(jpText,'id')
+            tlTxt2 = self.tl.translate(jpText,'en')
+            # tlDiv.append(tlTxt)
 
-        self.setText(jpDiv, tlTxt)
+            self.setText(jpDiv, tlTxt, tlTxt2)
+            pass
+        else:
+            tlTxt = self.tl.translate(jpText,self.tl_lang)
+            # tlDiv.append(tlTxt)
+
+            self.setText(jpDiv, tlTxt)
         # Menunggu seluruh text dan class load sepenuhnya
         self.jpTxt.loadFinished.connect(self.clickableText)
 
@@ -326,10 +406,12 @@ class TextScreen(QMainWindow):
         if ok:
             js = """
             // objek harus diinisialisasi untuk menghubungkan fungsi py ke js
-            var pyweb;
-            new QWebChannel(qt.webChannelTransport, function (channel) {
-                pyweb = channel.objects.pyweb;
-            });
+            let pyweb;
+            if (typeof pyweb == 'undefined') {
+                new QWebChannel(qt.webChannelTransport, function (channel) {
+                    pyweb = channel.objects.pyweb;
+                });
+            }
 
             // membuat seluruh kata clickable
             var elements = document.querySelectorAll('.jisho');
@@ -375,9 +457,13 @@ class TextScreen(QMainWindow):
                     if (!lemma) {
                         lemma = ''
                     }
-                    var konjugasiData = element.dataset.konjugasi;
-                    if (!konjugasiData) {
-                        konjugasiData = ''
+                    var tipeKonjugasiData = element.dataset.tipekonjugasi;
+                    if (!tipeKonjugasiData) {
+                        tipeKonjugasiData = ''
+                    }
+                    var bentukKonjugasiData = element.dataset.bentukkonjugasi;
+                    if (!bentukKonjugasiData) {
+                        bentukKonjugasiData = ''
                     }
                     var kelasData = element.dataset.kelas;
                     if (!kelasData) {
@@ -391,14 +477,16 @@ class TextScreen(QMainWindow):
                     var japaneseWord = '';
                     for (let i = 0; i < node.length; i++) {
                         let nod = node[i].cloneNode(true)
-                        let rt = nod.querySelector("rt");
-                        nod.removeChild(rt);
+                        let rt = nod.querySelectorAll(".reading");
+                        rt.forEach(r => {
+                            r.remove();
+                        });
                         japaneseWord += nod.textContent;
                     }
                     rect = element.getBoundingClientRect();
                     rects.push(rect);
                         
-                    pyweb.tampilDetailKata(japaneseWord, [rect.right, rect.bottom, rect.left, rect.top], kanji, reading, lemma, konjugasiData, kelasData, indeksKataData);
+                    pyweb.tampilDetailKata(japaneseWord, [rect.right, rect.bottom, rect.left, rect.top], kanji, reading, lemma, tipeKonjugasiData, bentukKonjugasiData, kelasData, indeksKataData);
 
                     console.log('tes')
                     
@@ -406,20 +494,19 @@ class TextScreen(QMainWindow):
             });
             """
             self.jpTxt.page().runJavaScript(js)
+            self.activateWindow()
+            self.raise_()
 
-    def getDataKamus(self, index, data):
-        self.dataKamus[index] = data
-        pass
 
     # jika fungsi memiliki parameter, typedata harus ditentukan pada @pyqtSlot
     # jika ingin passing dengan class, makah class harus menginherit QObject
-    @pyqtSlot(str, list, str, str, str, str, str, str)
-    def tampilDetailKata(self, word, rect, kanji, reading, lemma_dat, conj_dat, class_dat, indeks):        
-        print('word : ', word, '\nkanji : ', kanji, '\nreading : ', reading, '\nlemma : ', lemma_dat, '\nconj_dat : ', conj_dat, '\nclass_dat : ', class_dat, '\nindex : ', indeks, '\n')
-
+    @pyqtSlot(str, list, str, str, str, str, str, str, str)
+    def tampilDetailKata(self, word, rect, kanji, reading, lemma_dat, conj_dat, conj_form_dat, class_dat, indeks):        
+        print('word : ', word, '\nkanji : ', kanji, '\nreading : ', reading, '\nlemma : ', lemma_dat, '\nconj_dat : ', conj_dat, '\nconj_form : ', conj_form_dat, '\nclass_dat : ', class_dat, '\nindex : ', indeks, '\n')
+        # return
         kanji = kanji.split(',')
         lemma_dat = lemma_dat.split(',') # [kanji, reading]
-        conj_dat = conj_dat.split(',')
+        # conj_dat = conj_dat.split(',')
         indeks = int(indeks)
         rect = [int(x) for x in rect]
 
@@ -431,12 +518,18 @@ class TextScreen(QMainWindow):
         if indeks not in self.dataKamus:
             self.threads[indeks].start()
             self.threads[indeks].data_kamus.connect(self.getDataKamus)
-            self.threads[indeks].finished.connect(lambda: self.kamus.tampilKamus(word, kanji, reading, lemma_dat, conj_dat, class_dat, self.dataKamus[indeks]))
+            self.threads[indeks].finished.connect(lambda: self.kamus.tampilKamus(word, kanji, reading, lemma_dat, conj_dat, conj_form_dat, class_dat, self.dataKamus[indeks]))
         else:
-            self.kamus.tampilKamus(word, kanji, reading, lemma_dat, conj_dat, class_dat, self.dataKamus[indeks])
+            self.kamus.tampilKamus(word, kanji, reading, lemma_dat, conj_dat, conj_form_dat, class_dat, self.dataKamus[indeks])
         self.kamus.show()
         self.setFocus()
         self.showKamus = True
+
+    def getDataKamus(self, index, data):
+        # print(data)
+        self.dataKamus[index] = data
+        # print(self.dataKamus[index])
+        pass
         
     
 # for javascript debugging purpose only
@@ -449,15 +542,17 @@ class CustomWebEnginePage(QWebEnginePage):
 # multi-thread untuk meminta data kamus tanpa menunggu satu per satu data selesai
 class CallApiThread(QThread):
 
-    data_kamus = pyqtSignal(int, list)
-    def __init__(self, index, word, kamus : Dict):
+    data_kamus = pyqtSignal(int, object)
+    def __init__(self, index, word, kamus : Dict, reading = None):
         super(CallApiThread, self).__init__()
         self.index = index
         self.word = word
         self.kamus = kamus
+        self.reading = reading
 
     def run(self):
-        data = self.kamus.cariKata(self.word)
+        data = self.kamus.cariKata(self.word, reading=self.reading)
+        
         self.data_kamus.emit(self.index, data)
         time.sleep(0.05)
         pass
@@ -468,8 +563,8 @@ class CallApiThread(QThread):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    screen = TextScreen()
+    screen = TextScreen(Dict(None), tl_lang='id')
     
-    screen.txtProcessing()
+    screen.txtProcessing('inverted.jpg', furigana='hiragana')
     screen.show()
     app.exec_()

@@ -1,4 +1,5 @@
 import typing
+from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget
 from PyQt5 import QtCore, uic
 import sys
@@ -12,19 +13,21 @@ class MainUi(QMainWindow):
         # initialize
         self.isStart = False
         self.screen = None
+        self.bmIsShow = False
 
         # load .ui file
         uic.loadUi("src/gui/mainui2.ui", self)
 
-        self.mainPanel.insertWidget(0, menu.TranslatePage())
-        self.mainPanel.insertWidget(1, menu.BookmarkPage())
-        self.mainPanel.insertWidget(2, menu.SettingsPage())
-        self.mainPanel.insertWidget(3, menu.AboutPage()) 
+        self.bmPage = menu.BookmarkPage()
+        self.tlPage = menu.TranslatePage(self.bmPage)
+        self.abPage = menu.AboutPage()
+
+        self.mainPanel.insertWidget(0, self.tlPage)
+        self.mainPanel.insertWidget(1, self.abPage) 
 
         self.translateBtn.clicked.connect(lambda: self.switchPage(0))
-        self.bookmarkBtn.clicked.connect(lambda: self.switchPage(1))
-        self.settingsBtn.clicked.connect(lambda: self.switchPage(2))
-        self.aboutBtn.clicked.connect(lambda: self.switchPage(3))
+        self.bookmarkBtn.clicked.connect(self.bookmarkBtnEv)
+        self.aboutBtn.clicked.connect(lambda: self.switchPage(1))
 
         self.mainPanel.setCurrentIndex(0)
 
@@ -34,27 +37,20 @@ class MainUi(QMainWindow):
     def switchPage(self, index):
         self.mainPanel.setCurrentIndex(index)
         pass
-################## Translate Menu ##################
-    # call screen.py and textscreen.py
-################## Translate Menu ##################
 
-################## Bookmark Menu ##################
-class BookmarkPage(QWidget):
-    def __init__(self):
-        super().__init__()
-################## Bookmark Menu ##################
+    def bookmarkBtnEv(self):
+        if self.bmPage.isShown:
+            pass
+        else:
+            self.bmPage.show()
+            self.bmPage.isShown = True
+        pass
 
-################## Pengaturan Menu ##################
-class SettingsPage(QWidget):
-    def __init__(self):
-        super().__init__()
-################## Pengaturan Menu ##################
+    def closeEvent(self, a0: QCloseEvent) -> None:
+        self.bmPage.close()
+        self.tlPage.close()
+        return super().closeEvent(a0)
 
-################## Info App Menu ##################
-class InfoAppPage(QWidget):
-    def __init__(self):
-        super().__init__()
-################## Info App Menu ##################
             
 
 

@@ -1,136 +1,91 @@
-import requests
-import xml.etree.ElementTree as ET
-import os
-import svgwrite
-import tkinter as tk
-from PIL import Image, ImageTk
-import io
-from svg.path import parse_path
-from pprint import pprint
+import sys
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap, QImageReader, QImage
+from PyQt5.QtWidgets import  QApplication, QMainWindow, QLabel, QSlider, QVBoxLayout, QWidget, QPushButton, QFileDialog
+import cv2
+from PIL import Image, ImageQt
 
-cwd = os.getcwd()  # Get the current working directory (cwd)
-files = os.listdir(cwd)  # Get all the files in that directory
-print("Files in %r: %s" % (cwd, files))
+class ImageThresholdingApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
 
+        self.initUI()
 
-# Fungsi untuk mencari makna kata di Jisho menggunakan Jisho API
-def search_jisho(word):
-    url = f"https://jisho.org/api/v1/search/words?keyword={word}"
-    response = requests.get(url)
-    # http://jisho.org/api/v1/search/words?keyword=%23jlpt-n5
-    # What i need...
-    # japanese word kanji (data->[0-?]->[japanese]->[0]->[word])
-    # japanese word reading hiragana (data->[0-?]->[japanese]->[0]->[reading])
-    # jlpt level (data->[0-?]->[jlpt]->[])
-    # word type/part of speech/kelas kata (data->sense->[0-?]->part_of_speech->[])
-    # meanings (data->sense->[0-?]->english_definitions->[])
+    def initUI(self):
+        self.setWindowTitle("Image Thresholding App")
 
-    if response.status_code == 200:
-        data = response.json()
-        pprint(data["data"][0])
-        if data["meta"]["status"] == 200 and data["data"]:
-            # Ambil data pertama (paling relevan)
-            result = data["data"][0]
-            japanese_word = result["japanese"][0]["word"]
-            meanings = [", ".join(sense["english_definitions"]) for sense in result["senses"]]
-            return japanese_word, meanings
-        else:
-            return "Kata tidak ditemukan di Jisho."
-    else:
-        return "Terjadi kesalahan dalam mengakses API Jisho."
+        # Widget utama
+        widget = QWidget(self)
+        self.setCentralWidget(widget)
 
-# Fungsi untuk mendapatkan informasi stroke order dari KanjiVG menggunakan KanjiVG API
-def get_kanjivg_data(karakter):
-    # Membaca file XML
-    
-    
-    import traceback
-    # ...
-    try:
-        tree = ET.parse("./src/kanjivg.xml")
-        root = tree.getroot()
-        # ...
-    except IOError:
-        ex_info = traceback.format_exc()
-        print('ERROR!!! Check if this file exists and you have right to read it!')
-        print('ERROR!!! Exception info:\n%s' % (ex_info))
+        # Layout utama
+        layout = QVBoxLayout(widget)
 
+        # Label untuk menampilkan gambar
+        self.image_label = QLabel(self)
+        self.image_label.setScaledContents()
+        layout.addWidget(self.image_label)
 
+        # Slider untuk mengatur nilai threshold
+        self.threshold_slider = QSlider(Qt.Horizontal, self)
+        self.threshold_slider.setRange(0, 255)
+        layout.addWidget(self.threshold_slider)
 
-    karakter_id = ord(karakter)
-    if karakter_id > 0xf and karakter_id <= 0xfffff:
-        karakter_id = "kvg:kanji_%05x" % (karakter_id)
-    
-    # List untuk menyimpan urutan stroke karakter yang cocok
-    urutan_strokes = []
-    
-    # Melakukan iterasi pada setiap elemen kanji dalam data SVG
-    for kanji_elem in root.findall(".//kanji"):
-        # Mendapatkan karakter kanji
-        kanji_id = kanji_elem.get("id")
+        # Tombol untuk memuat gambar
+        load_button = QPushButton("Load Image", self)
+        load_button.clicked.connect(self.load_image)
+        layout.addWidget(load_button)
+
+        # Menghubungkan perubahan slider dengan fungsi update threshold
+        self.threshold_slider.valueChanged.connect(self.update_threshold)
+
+        # Inisialisasi variabel gambar
+        self.image = None
+
+    def load_image(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.ReadOnly
+
+        # Memilih gambar dari dialog file
+        file_name, _ = QFileDialog.getOpenFileName(self, "Open Image File", "", "Images (*.png *.jpg *.bmp);;All Files (*)", options=options)
+
+        if file_name:
+            # Membaca gambar menggunakan OpenCV
+            self.image = cv2.imread(file_name)
+            self.image1 = self.image
+            self.image_gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+
+            # Menampilkan gambar
+            self.display_image(self.image)
+
+    def display_image(self, image):
+        # Konversi gambar OpenCV ke QImage
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        height, width, channel = image_rgb.shape
+        bytes_per_line = 3 * width
+        q_image = QImage(image_rgb.data, width, height, bytes_per_line, QImage.Format_RGB888)
+
+        # Menampilkan gambar di QLabel
+        pixmap = QPixmap.fromImage(q_image)
+        self.image_label.setPixmap(pixmap)
+
+    def update_threshold(self):
+        # Menerapkan thresholding pada gambar
         
-        # Jika karakter kanji cocok dengan yang dicari
-        if kanji_id == karakter_id:
-            # Menambahkan urutan stroke ke dalam list urutan_strokes
-            for path in kanji_elem.findall(".//path"):
-                urutan_strokes.append(path.get("d"))
-    
-    return urutan_strokes
+        _, thresholded_image = cv2.threshold(self.image_gray, self.threshold_slider.value(), 255, cv2.THRESH_BINARY)
 
-def buat_gambar_svg_dinamis(path_data):
-    dwg = svgwrite.Drawing(size=(300, 300), debug=False)
+        # Menampilkan gambar yang telah diterapkan thresholding
+        self.image1 = thresholded_image
+        if self.threshold_slider.value() == 0:
+            self.image1 = self.image
+        self.display_image(self.image1)
 
-    # Membuat elemen 'g' untuk elemen statis
-    static_group = dwg.g()
-    static_group['style'] = "fill:none;stroke:#000000;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;"
-    dwg.add(static_group)
+def main():
+    app = QApplication(sys.argv)
+    window = ImageThresholdingApp()
+    window.setGeometry(100, 100, 800, 600)
+    window.show()
+    sys.exit(app.exec_())
 
-    # Tambahkan setiap path ke dalam elemen SVG
-    for data in path_data:
-        # temp = data.replace(',',' ')
-        data = parse_path(data).d()
-        anim_path = static_group.add(dwg.path(d=data))
-        # anim_path = anim_group.add(dwg.path())
-        anim_path['d'] = data
-        anim_path.add(dwg.animateMotion(
-        begin="0s", dur="5s", repeatCount="indefinite",
-        keyPoints="0%;100%;0%",
-        keyTimes="0;0.5;1"
-        ))
-        # path = svgwrite.path.Path(d=data)
-        # path.fill("none").stroke("black", 2)
-        # dwg.add(path)
-    dwg.save()
-
-# Fungsi ini akan menampilkan gambar SVG di antarmuka Tkinter
-# def tampilkan_gambar_svg_dinamis(path_data):
-#     svg_data = buat_gambar_svg_dinamis(path_data)
-
-#     # Buat gambar dari data SVG
-#     img = Image.open(io.BytesIO(svg_data.encode()))
-#     img = ImageTk.PhotoImage(img)
-
-#     # Buat jendela Tkinter
-#     root = tk.Tk()
-
-#     # Buat label untuk menampilkan gambar
-#     label = tk.Label(root, image=img)
-#     label.pack()
-
-#     # Tampilkan jendela
-#     root.mainloop()
-
-
-# Contoh penggunaan:
-search_word = "原神"  # Kata yang ingin dicari di Jisho
-kanji_character = "猫"  # Kanji yang ingin dicari stroke ordernya di KanjiVG
-# strokes = get_kanjivg_data(search_word)
-# print(type(strokes[0]))
-# buat_gambar_svg_dinamis(strokes)
-
-# Cari makna kata di Jisho
-japanese_word, meanings = search_jisho(search_word)
-print(meanings)
-print(f"Makna kata {japanese_word}: {', '.join(meanings)}")
-
-# Dapatkan data stroke order dari KanjiVG
+if __name__ == "__main__":
+    main()

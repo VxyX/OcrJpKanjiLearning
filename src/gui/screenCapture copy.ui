@@ -268,9 +268,9 @@
                     <number>5</number>
                    </property>
                    <item>
-                    <widget class="QPushButton" name="pushButton">
+                    <widget class="QPushButton" name="PreProcessBtn">
                      <property name="text">
-                      <string>PushButton</string>
+                      <string>Pre-process</string>
                      </property>
                     </widget>
                    </item>
