@@ -88,10 +88,58 @@
         div#bookmarkBtn input[type=checkbox]{
             transform: scale(1.5);
         }
+
+        div.alert-box{
+            position: fixed;
+            width: fit-content;
+            bottom: 0;
+            left: 50%;
+            transform: translate(-50%, -50%);
+
+            padding: 15px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        div.success-add-bookmark {
+            color: #3c763d;
+            background-color: #dff0d8;
+            border-color: #d6e9c6;
+            opacity: 0;
+        }
+        div.success-remove-bookmark{
+            color: #763c3c;
+            background-color: #f0d8d8;
+            border-color: #e9c6d1;
+            opacity: 0;
+        }
+        div.cont-alert{
+            position: fixed;
+            display: flex;
+            width: 100%;
+            align-content: center;
+            bottom: 0;
+        }
+        .fade{
+            opacity: 1;
+            animation: fade-in 2s cubic-bezier(.54,0,.83,.52);
+        }
+
+        @keyframes fade-in {
+            0% { opacity: 1 }
+            80% { opacity: 0.85 }
+            100% { opacity: 0 }
+        }
     </style>
     <title>Document</title>
 </head>
 <body>
+    
+    <div class="alert-box success-add-bookmark" id="add-bookmark">
+        Ditambahkan ke Bookmark
+    </div>
+    <div class="alert-box success-remove-bookmark" id="remove-bookmark">
+        Dihapus dari Bookmark
+    </div>
     <div id="bookmarkBtn">
         <input id="myCheckbox" type="checkbox" hidden>
     </div>

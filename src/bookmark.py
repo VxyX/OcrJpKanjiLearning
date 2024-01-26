@@ -10,7 +10,22 @@ from parsing import Parse
 
 class BookmarkDB():
 
-    CREATE_TABEL_KATA = """CREATE TABLE IF NOT EXISTS tabel_kata(
+
+
+    def __init__(self) -> None:
+
+        self.conn = None
+        try:
+            self.conn = sqlite3.connect("src/db/bookmark.db")
+        except Exception as e:
+            pass
+
+    
+    def create_table(self, conn=None):
+        if self.conn:
+            conn = self.conn
+
+        CREATE_TABEL_KATA = """CREATE TABLE IF NOT EXISTS tabel_kata(
                         id_kata INTEGER PRIMARY KEY,
                         kata TEXT,
                         kanji TEXT,
@@ -19,7 +34,7 @@ class BookmarkDB():
                         jlpt_lvl TEXT,
                         bahasa TEXT
                         );"""
-    CREATE_TABEL_MAKNA = """CREATE TABLE IF NOT EXISTS tabel_makna(
+        CREATE_TABEL_MAKNA = """CREATE TABLE IF NOT EXISTS tabel_makna(
                         id_makna INTEGER PRIMARY KEY,
                         tag1 TEXT,
                         tag2 TEXT,
@@ -31,55 +46,12 @@ class BookmarkDB():
                         );"""
     
 
-
-    def __init__(self) -> None:
-        # self.widgets = []
-        # self.id_kata = []
-        # self.checkData = []
-
-        self.conn = None
-        try:
-            self.conn = sqlite3.connect("src/db/bookmark.db")
-        except Exception as e:
-            print(e)
-
-        # uic.loadUi("src/gui/mainuiWidget/BookmarkWidget.ui", self)
-        
-        # self.scrollContainer = QWidget()
-        # self.containerLayout = QVBoxLayout()
-        # self.containerLayout.setContentsMargins(0,0,0,0)
-        # self.showall_bookmark()
-        # self.containerLayout.setAlignment(Qt.AlignTop)
-        # self.scrollContainer.setLayout(self.containerLayout)
-        # self.scrollContainer.setObjectName('coontainer')
-        # self.setStyleSheet('''#a{
-        #                    border: 1px solid rgba(0,0,0,0.3);
-        #                    border-left: none;
-        #                    border-right: none;
-        #                    border-top: none;
-        # }''')
-        
-
-        # self.scrollLayout = QVBoxLayout()
-        # self.scrollLayout.addWidget(self.scrollContainer)
-        # self.scrollWidget.setLayout(self.scrollLayout)
-
-        # self.hapusBtn.clicked.connect(self.hapusBtnEvent)
-        # self.hapusBtn.setEnabled(False)
-
-    
-    def create_table(self, conn=None):
-        if self.conn:
-            conn = self.conn
         try:
             c = conn.cursor()
-            c.execute('DROP TABLE IF EXISTS tabel_kata')
-            c.execute('DROP TABLE IF EXISTS tabel_makna')
-            c.execute(self.CREATE_TABEL_KATA)
-            c.execute(self.CREATE_TABEL_MAKNA)
+            c.execute(CREATE_TABEL_KATA)
+            c.execute(CREATE_TABEL_MAKNA)
         except Exception as e:
-            print(e)
-        pass
+            pass
 
     def get_connection(self):
         return self.conn #sqlite3.connect("src/db/bookmark.db")

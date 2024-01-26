@@ -1,14 +1,18 @@
 import typing
 import pyautogui
 import time
+import threading
+import multiprocessing
 from PyQt5.QtWidgets import QMainWindow, QApplication, QSizeGrip
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, QThread
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
 import sys
 
 from txtscreen import TextScreen
 
 from imgpreproc import ImProc
+
+from ocr import Ocr
 
 from pprint import pprint
 
@@ -22,6 +26,10 @@ class ScreenCapture(QMainWindow):
         self.textScreen = txtScreen
         self.imgProcScreen = ImProc()
         self.imgProcScreenShow = False
+        self.runningThread = None
+        self.ocr = Ocr()
+        self.jpTxt =''
+        
         uic.loadUi(self.uifile, self)
         with open(self.stylefile,"r") as fh:
             self.setStyleSheet(fh.read())
@@ -45,7 +53,7 @@ class ScreenCapture(QMainWindow):
 
         self.ScreenShotBtn.clicked.connect(self.screenshot)
         self.PreProcessBtn.clicked.connect(self.tampilPreprocessImg)
-
+        self.ssThread = None
         # show window
         self.show()
 
@@ -143,13 +151,21 @@ class ScreenCapture(QMainWindow):
         self.resize(self.width(), height)
 
     def closeScreen(self):
+        self.textScreen.fclose = True
         self.textScreen.clearTxt()
         self.imgProcScreen.closeScreen()
         self.close()
         self.textScreen.close()  
 ################## End of Custom Window Method ######################
     
+    def screenshotThread(self):
+        self.ssThread = ScreenshotThread(self.screenshot)
+        self.ssThread.finished.connect(lambda: self.procImg)
+        self.ssThread.start()
+        
+
     def screenshot(self):
+        # time.sleep(100)
         if not self.takingss:
             self.takingss = True
             # Set window Opacity to 0 to get clean screenshot
@@ -177,19 +193,38 @@ class ScreenCapture(QMainWindow):
 
             # Delay (just in case)
             time.sleep(0.6)
-
-            try:
-                print(self.imgProcScreen.isEnabled_())
-                if self.imgProcScreen.isEnabled_():
-                    self.imgProcScreen.processImg('imgpreproc.png')
-                    self.textScreen.txtProcessing('processedimg.png')
-                    pass
-                else:
-                    self.textScreen.txtProcessing('screenshot.png')
-            except Exception as e:
-                print(e)
+            self.procImg()
+            # self.runningThread1 = MultThread(self.textScreen.txtProcessing, 'screenshot.png')
+            # self.runningThread2 = MultThread(self.textScreen.txtProcessing, 'processedimg.png')
+            
+                    # self.textScreen.txtProcessing('screenshot.png')
+                
+           
             
             self.takingss = False
+
+    def procImg(self):
+        if self.runningThread:
+            if self.runningThread.isRunning():
+                self.runningThread.stop()
+        try:
+            # print(self.imgProcScreen.isEnabled_())
+            if self.imgProcScreen.isEnabled_():
+                self.imgProcScreen.processImg('imgpreproc.png')
+                self.runningThread = OcrThread(self.ocr, 'imgpreproc.png')
+                self.runningThread.jpTxt.connect(self.ocrThreadSet)
+                self.runningThread.finished.connect(lambda: self.ocrThreadFinished(self.jpTxt))
+                self.runningThread.start()
+                # self.textScreen.txtProcessing('processedimg.png')
+                pass
+            else:
+                self.runningThread = OcrThread(self.ocr, 'screenshot.png')
+                self.runningThread.jpTxt.connect(self.ocrThreadSet)
+                self.runningThread.finished.connect(lambda: self.ocrThreadFinished(self.jpTxt))
+                self.runningThread.start()
+        except Exception as e:
+            print(e)
+        pass
       
     def tampilPreprocessImg(self) :
         if not self.imgProcScreen.isShown():
@@ -199,9 +234,48 @@ class ScreenCapture(QMainWindow):
             self.imgProcScreen.raise_()
 
         pass
-    
+
+    def ocrThreadSet(self, jpTxt):
+        self.jpTxt = jpTxt
+
+    def ocrThreadFinished(self, jpTxt):
+        self.textScreen.txtProcessing(jpTxt)
+
+class OcrThread(QThread):
+
+    jpTxt = pyqtSignal(object)
+    def __init__(self, func_to_run, img):
+        super(OcrThread, self).__init__()
+        self.func = func_to_run
+        self.img = img
+
+    def run(self):
+        txt = self.func.getText(self.img)
+        self.jpTxt.emit(txt)
+        
+        pass
+
+    def stop(self):
+        self.terminate()
+        pass
+
+class ScreenshotThread(QThread):
+
+    jpTxt = pyqtSignal(object)
+    def __init__(self, screenshot_func):
+        super(ScreenshotThread, self).__init__()
+        self.screenshot = screenshot_func
+
+    def run(self):
+        self.screenshot()
+        
+        pass
+
+    def stop(self):
+        self.terminate()
+        pass
    
 if (__name__ == "__main__"):
     app = QApplication(sys.argv)
-    screen = ScreenCapture(TextScreen())
+    screen = ScreenCapture(TextScreen(None))
     app.exec_()

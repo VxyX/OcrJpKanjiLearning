@@ -26,9 +26,9 @@ from typing import TYPE_CHECKING
 # files = os.listdir(cwd)  # Get all the files in that directory
 # print("Files in %r: %s" % (cwd, files))
 
-class Dict(QWidget):
+class Kamus(QWidget):
     def __init__(self, bookmarkPage, kamus_lang='en', x=100, y=100):
-        super(Dict, self).__init__()
+        super(Kamus, self).__init__()
 
         self.kamus_lang = kamus_lang
         self.bookmarkPage = bookmarkPage
@@ -147,7 +147,7 @@ class Dict(QWidget):
         self.setLayout(self.winLayout)
         # self.show()
         # self.show()
-        # self.content.loadFinished.connect(self.toogleBookmark)
+        self.content.loadFinished.connect(self.toogleBookmark)
         pass
 
     def mousePressEvent(self, event):
@@ -174,30 +174,33 @@ class Dict(QWidget):
         self.content.page().runJavaScript(js)
 
     def toogleBookmark(self, ok):
-        print(ok, 'inites')
+        # print(ok, 'inites')
         if ok:
             js = """
             // objek harus diinisialisasi untuk menghubungkan fungsi py ke js
-            let bookmark;
             if (typeof bookmark == 'undefined') {
-                new QWebChannel(qt.webChannelTransport, function (channel) {
-                    bookmark = channel.objects.bookmark;
-                });
+                let bookmark;
             }
+            
+            new QWebChannel(qt.webChannelTransport, function (channel) {
+                bookmark = channel.objects.bookmark;
+            });
 
-            const checkbox = document.getElementById('myCheckbox')
-
+            checkbox = document.getElementById('myCheckbox');
             checkbox.addEventListener('change', (event) => {
             if (event.currentTarget.checked) {
                 console.log('checked');
                 bookmark.addToBookmark('checked');
                 checkbox.disabled = true;
+                document.getElementById('add-bookmark').classList.add('fade');
                 setTimeout(function(){
                     checkbox.disabled = false;
                     },2000);
             } else {
                 console.log('not checked');
+                bookmark.removeFromBookmark('unchecked');
                 checkbox.disabled = true;
+                document.getElementById('remove-bookmark').classList.add('fade');
                 setTimeout(function(){
                     checkbox.disabled = false;
                     },2000);
@@ -208,7 +211,8 @@ class Dict(QWidget):
     
     @pyqtSlot(str)
     def addToBookmark(self, tes):
-        print(tes)
+        # print(tes)
+        # return
         if self.jisho_dat:
             jisho_dat = self.jisho_dat
             self.bookmarkPage.tambahBookmark(jisho_dat, self.kamus_lang)
@@ -216,6 +220,18 @@ class Dict(QWidget):
             print('gaada')
             return
         # pprint(jisho_dat)
+        pass
+    
+    @pyqtSlot(str)
+    def removeFromBookmark(self, tes):
+        # print(tes)
+        # return
+        if self.jisho_dat:
+            jisho_dat = self.jisho_dat
+            self.bookmarkPage.hapusBookmark(jisho_dat, self.kamus_lang)
+        else:
+            print('gaada')
+            return
         pass
 
     def tampilKamus(self, word, kanjis, kanji_readings, lemma, conj, conj_form, classif, kamus_dat):
@@ -225,6 +241,12 @@ class Dict(QWidget):
         if not jisho_dat:
             js = f"""
             document.getElementById("word").innerHTML = 'Kata tidak ditemukan';
+            """
+            self.content.page().runJavaScript(js)
+            return
+        elif jisho_dat == 'connection':
+            js = f"""
+            document.getElementById("word").innerHTML = 'Connection Error';
             """
             self.content.page().runJavaScript(js)
             return
@@ -505,13 +527,21 @@ class Dict(QWidget):
         # print(senses)
         ############# Senses Display ##################
         # print('masuk')
+        
         js = f"""
         document.getElementById("word").innerHTML = '{kata}';
         document.getElementById("grammar-info").innerHTML = '{konjugasi}';
         document.getElementById("senses").innerHTML = '{senses}';
-        document.getElementById("myCheckbox").removeAttribute('hidden')
+        document.getElementById("myCheckbox").removeAttribute('hidden');
         """
+        if self.bookmarkPage:
+            cek_kata = self.bookmarkPage.cek_kata(jisho_dat, self.kamus_lang)
+            if cek_kata:
+                js += """document.getElementById("myCheckbox").checked = true;"""
+            else:
+                js += """document.getElementById("myCheckbox").checked = false;"""
         self.content.page().runJavaScript(js)
+
         self.toogleBookmark(True)
 
         if self.kamus_lang == 'both':
@@ -534,8 +564,12 @@ class Dict(QWidget):
             url += f"%20{reading}"
         if tag:
             url += f"%20%23{tag}"
-
-        response = requests.get(url)
+        # print(url)
+        try:
+            response = requests.get(url)
+        except Exception as e:
+            return 'connection'
+        
         # http://jisho.org/api/v1/search/words?keyword=%23jlpt-n5
         # What i need...
         # japanese word kanji (data->[0-?]->[japanese]->[0]->[word])
@@ -546,7 +580,12 @@ class Dict(QWidget):
 
         if response.status_code == 200:
             data = response.json()
+            # print()
+            # print('input kata :', word)
+            # print()
+            # print('output data jisho:')
             # pprint(data["data"][0])
+            # return
             if data["meta"]["status"] == 200 and data["data"]:
                 # Ambil data pertama (paling relevan)
                 result = data["data"][0]
@@ -651,9 +690,9 @@ class CustomWebEnginePage(QWebEnginePage):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    widget = Dict(None, 'id')
-    # widget.show()
-    search_word = '泳ぐ'
+    widget = Kamus(None, 'en')
+    widget.show()
+    search_word = 'じゃない'
     meanings = widget.cariKata(search_word)
     print(meanings)
     # print(f"Makna kata {japanese_word}: {', '.join(meanings)}")

@@ -1,22 +1,33 @@
 import pytesseract
-import cv2
 from PIL import Image
+import os
+import cv2
 
-class Capture():
-    def __init__(self, image):
+class Ocr():
+    def __init__(self, image=None):
         
         # menentukan path tesseract
-        self.tesseract_path = r'D:\\Program Files\\Tesseract\\tesseract.exe'
+        main_dir = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..'))
+        self.tesseract_path = os.path.abspath(os.path.join(main_dir, 'tesseract', 'tesseract.exe'))
         pytesseract.pytesseract.tesseract_cmd = self.tesseract_path
-        self.jp_trained_data ='--oem 1 -c preserve_interword_spaces=1 --tessdata-dir "D:/Bakup/Materi/Semester9/Skripsi/program/orcjplearning/src/tesseract/tessdata"' #normal accuracy normal speed
-        self.jp_trained_data_best = '--oem 1 -c preserve_interword_spaces=1 --tessdata-dir "D:/Bakup/Materi/Semester9/Skripsi/program/orcjplearning/src/tesseract/tessdata_best"' #best accuracy slow speed
-        print(pytesseract.get_tesseract_version())
+        self.jp_trained_data_best = main_dir + '/src/tesseract/tessdata_best'
+        self.config = f'--oem 1 -c preserve_interword_spaces=1 --tessdata-dir "{self.jp_trained_data_best}"'
+
         if image:
             self.img = image
         else:
             self.img = r'screenshot.png'
+        # print('\n\n\nimage file name :',self.img)
 
-        pass
+    def getText(self, img=None):
+        if not img:
+            img = self.img
+        image = Image.open(img)
+        lang = 'jpn'
+        
+        text = pytesseract.image_to_string(image, lang, config=self.config)
+        # print(img)
+        return text
     
     def imgPreProcessing(self):
         img = cv2.imread(self.img)
@@ -52,27 +63,22 @@ class Capture():
         image = cv2.medianBlur(image, 3)
         return (image)
 
-    def getText(self, img=None):
-        if not img:
-            img = self.img
-        image = Image.open(img)
-        lang = 'jpn'
-
-        # Terapkan OCR pada gambar menggunakan pytesseract
-        text = pytesseract.image_to_string(image, lang, config=self.jp_trained_data_best)
-        print(img)
-        return text
+    
     
 if __name__ == "__main__":
-    c = Capture('')
-    c.imgPreProcessing()
-    print('normal:')
-    print(c.getText('screenshot.png'))
-    print('inverted:')
-    print(c.getText('inverted.jpg'))
-    print('\nbw:')
-    print(c.getText('bw.jpg'))
-    print('\nno_noise:')
-    print(c.getText('no_noise.jpg'))
-    print('\nno_noise_inv:')
-    print(c.getText('no_noise_inv.jpg'))
+    c = Ocr('')
+    # c.imgPreProcessing()
+    print()
+    print('output text: ', c.getText('screenshot.png'))
+    # a = '--oem 1 -c preserve_interword_spaces=1 --tessdata-dir "{}"'
+    # main_dir = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..'))
+    # a = f'--oem 1 -c preserve_interword_spaces=1 --tessdata-dir "{main_dir}"'
+    # print(a)
+    # print('inverted:')
+    # print(c.getText('inverted.jpg'))
+    # print('\nbw:')
+    # print(c.getText('bw.jpg'))
+    # print('\nno_noise:')
+    # print(c.getText('no_noise.jpg'))
+    # print('\nno_noise_inv:')
+    # print(c.getText('no_noise_inv.jpg'))

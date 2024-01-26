@@ -12,7 +12,7 @@ from pprint import pprint
 
 from screen import ScreenCapture
 from txtscreen import TextScreen
-from jisho import Dict
+from jisho import Kamus
 from bookmark import BookmarkDB, BookmarkWidget
 from parsing import Parse
 import os
@@ -34,10 +34,12 @@ class BookmarkPage(QWidget):
         # load .ui file
         uic.loadUi("src/gui/mainuiWidget/BookmarkWidget.ui", self)
 
+        self.setWindowTitle('Bookmark')
+
         self.scrollContainer = QWidget()
         self.containerLayout = QVBoxLayout()
         self.containerLayout.setContentsMargins(0,0,0,0)
-        self.tampil_data()
+        self.tampilBookmark()
         self.containerLayout.setAlignment(Qt.AlignTop)
         self.scrollContainer.setLayout(self.containerLayout)
         self.scrollContainer.setObjectName('coontainer')
@@ -52,9 +54,9 @@ class BookmarkPage(QWidget):
         self.scrollLayout.addWidget(self.scrollContainer)
         self.scrollWidget.setLayout(self.scrollLayout)
 
-        self.hapusBtn.clicked.connect(self.hapusBtnEvent)
+        self.hapusBtn.clicked.connect(self.hapusBtnEv)
         self.hapusBtn.setEnabled(False)
-        self.kembaliBtn.clicked.connect(self.kembaliBtnEvent)
+        self.kembaliBtn.clicked.connect(self.kembaliBtnEv)
 
         self.detailHtmlFile = 'src/html/detailBookmark.html'
         with open(self.detailHtmlFile, "r", encoding='utf-8') as file:
@@ -68,7 +70,7 @@ class BookmarkPage(QWidget):
         self.detailWidgetLayout.addWidget(self.content)
         self.detailWidget.setLayout(self.detailWidgetLayout)
 
-    def hapusBtnEvent(self):
+    def hapusBtnEv(self):
         i = 0
         dat = len(self.id_kata)
         while i < dat:
@@ -86,7 +88,7 @@ class BookmarkPage(QWidget):
         print(len(self.checkData), len(self.id_kata), len(self.widgets))
         pass
     
-    def kembaliBtnEvent(self):
+    def kembaliBtnEv(self):
         self.BookmarkPanel.setCurrentIndex(0)
         pass
 
@@ -97,12 +99,39 @@ class BookmarkPage(QWidget):
             self.tambahWidget(id_kata, kata, hiragana, romaji, makna)
         pass
 
+    def hapusBookmark(self, jishodat, bahasa):
+        if jishodat[0]:
+            temp = self.db.cari_kata(jishodat[0], jishodat[1], bahasa)
+        else:
+            temp = self.db.cari_kata(jishodat[1], jishodat[1], bahasa)
+        print(jishodat[0])
+        if temp:
+            print(temp[0][0])
+            # id_kata, kata, hiragana, romaji, makna = temp
+            i = 0
+            dat = len(self.id_kata)
+            while i < dat:
+                if self.id_kata[i] == temp[0][0]:
+                    self.widgets[i].deleteLater()
+                    del self.widgets[i]
+                    del self.checkData[i]
+                    del self.id_kata[i]
+                    i = i - 1
+                    print('disini')
+                    dat = dat - 1
+                i = i + 1
+                print(i)
+
+            self.db.delete_bookmark(temp[0][0])
+            # self.tambahWidget(id_kata, kata, hiragana, romaji, makna)
+        pass
+
     def tambahWidget(self, id_kata, kata, hiragana, romaji, makna_dat):
         cont = BookmarkWidget()
         self.checkData.append(cont.checkBox)
         self.id_kata.append(id_kata)
         # lambda a, b=2: func(a, b)
-        cont.detailTxt.mousePressEvent = lambda event, id_kata=id_kata: self.tampilDetail(event, id_kata)
+        cont.detailTxt.mousePressEvent = lambda event, id_kata=id_kata: self.detailBtnEv(event, id_kata)
         cont.checkBox.stateChanged.connect(self.checkCheckbox)
         cont.kata.setText(kata)
         cont.caraBaca.setText(hiragana+' ('+romaji+')')
@@ -118,16 +147,16 @@ class BookmarkPage(QWidget):
         self.containerLayout.addWidget(cont)
         pass
 
-    def tampilDetail(self, event, id_kata):
+    def detailBtnEv(self, event, id_kata):
         # print(id_kata)
         kata, makna = self.db.get_data(id_kata)
         kata = kata[0]
         # pprint(makna)
-        self.tampilDetailData(kata, makna)
+        self.tampilDetailBookmark(kata, makna)
         self.BookmarkPanel.setCurrentIndex(1)
         pass
 
-    def tampilDetailData(self, kata_dat, makna_dat):
+    def tampilDetailBookmark(self, kata_dat, makna_dat):
         ############# Word Display ##################
         ruby = self.detailTxtHtml.new_tag("ruby")
         lemma_kanj = []
@@ -287,7 +316,7 @@ class BookmarkPage(QWidget):
         print(len(self.checkData), len(self.id_kata), len(self.widgets))
         pass
     
-    def tampil_data(self):
+    def tampilBookmark(self):
         # print(rows)
         kata, makna = self.db.showall_bookmark()
 
@@ -300,6 +329,17 @@ class BookmarkPage(QWidget):
         self.isShown = False
         self.hide()
         event.ignore()
+        pass
+
+    def cek_kata(self, jishodat, bahasa):
+        if jishodat[0]:
+            temp = self.db.cari_kata(jishodat[0], jishodat[1], bahasa)
+        else:
+            temp = self.db.cari_kata(jishodat[1], jishodat[1], bahasa)
+        if temp:
+            return True
+        else:
+            return False
         pass
 
 ################## Translate Menu ##################
@@ -322,7 +362,7 @@ class TranslatePage(QWidget):
 
         self.kamus_lang = self.transLang.currentData()
         self.translate_lang = self.dicLang.currentData()
-        print(self.kamus_lang, self.translate_lang)
+        # print(self.kamus_lang, self.translate_lang)
 
         self.transLang.currentIndexChanged.connect(self.cekBahasaTerjemahan)
         self.dicLang.currentIndexChanged.connect(self.cekBahasaKamus)
@@ -334,7 +374,7 @@ class TranslatePage(QWidget):
 
         if not self.isStart:
             if self.bookmarkPage:
-                self.kamusPage = Dict(self.bookmarkPage, self.kamus_lang)
+                self.kamusPage = Kamus(self.bookmarkPage, self.kamus_lang)
             else:
                 return
             if self.kamusPage:
@@ -383,9 +423,13 @@ class TranslatePage(QWidget):
         self.translate_lang = self.transLang.currentData()
         print(self.translate_lang)
         if (self.checkDiffLang.checkState() == 0):
-            self.dicLang.setCurrentIndex(index)
+            if self.transLang.currentIndex() == 2:
+                pass
+            else:
+                self.dicLang.setCurrentIndex(index)
 
     def close(self) -> bool:
+        self.txtScreen.fclose = True
         self.kamusPage.close()
         self.txtScreen.close()
         self.screenshot.close()
@@ -405,7 +449,9 @@ if __name__ == "__main__":
     jisho_dat = '''['泳ぐ', 'およぐ', ['jlpt-n5'], [[[], [["godan verb with 'gu' ending", 'v5g'], ['intransitive verb', 'vi']], ['to swim']], [[], [["godan verb with 'gu' ending", 'v5g'], ['intransitive verb', 'vi']], ['to struggle through (a crowd)']], [[], [["godan verb with 'gu' ending", 'v5g'], ['intransitive verb', 'vi']], ["to make one's way through the world", 'to get along (in life)']], [[], [["godan verb with 'gu' ending", 'v5g'], ['intransitive verb', 'vi']], ['to totter', "to lose one's balance"]]]]'''
     a = BookmarkPage()
     a.show()
-    a.tambahBookmark(literal_eval(jisho_dat), 'id')
+    # a.tambahBookmark(literal_eval(jisho_dat), 'id')
+    # a.hapusBookmark(literal_eval(jisho_dat), 'id')
+    
     app.exec_()
 
         

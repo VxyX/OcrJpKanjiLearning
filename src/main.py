@@ -18,6 +18,8 @@ class MainUi(QMainWindow):
         # load .ui file
         uic.loadUi("src/gui/mainui2.ui", self)
 
+        self.setWindowTitle("JP OCR Translation")
+
         self.bmPage = menu.BookmarkPage()
         self.tlPage = menu.TranslatePage(self.bmPage)
         self.abPage = menu.AboutPage()

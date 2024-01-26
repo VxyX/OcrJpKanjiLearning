@@ -1,15 +1,9 @@
 import MeCab
-import sqlite3
-import sys
-import pytesseract
-from PIL import Image
 from pprint import pprint
 import romkan
 import os
 import re
 
-# to_u = ['ぅ', 'う', 'ぉ', 'お', 'く', 'ぐ', 'こ', 'ご', 'す', 'ず', 'そ', 'ぞ', 'つ', 'づ', 'と', 'ど', 'の', 'ふ', 'ぶ', 'ぷ', 'ほ', 'ぼ', 'ぽ', 'も', 'よ', 'ょ']
-# to_i = ['ぇ', 'え', 'け', 'げ', 'せ', 'ぜ', 'て', 'で', 'ね', 'へ', 'べ', 'ぺ' 'め']
 
 class Parse():
     def __init__(self):
@@ -19,7 +13,6 @@ class Parse():
         self.ipadic = os.path.join(os.path.dirname(filepath), 'dic', 'ipadic').replace('\\','\\\\')
 
         self.tagger = MeCab.Tagger(f"-d {self.unidic}")
-        self.output = None
         pass
     
     @staticmethod
@@ -32,6 +25,9 @@ class Parse():
             for char in txt:
                 char_code = ord(char)
                 if jenis_huruf == 'hiragana':
+                    if char == 'ー':
+                        new_txt += 'ー'
+                        continue
                     # Periksa apakah karakter bukan hiragana
                     if not 0x3040 <= char_code <= 0x309F:
                         # Periksa apakah karakter adalah katakana
@@ -45,6 +41,9 @@ class Parse():
                         new_txt += char
 
                 if jenis_huruf == 'katakana':
+                    if char == 'ー':
+                        new_txt += 'ー'
+                        continue
                     if not 0x30A0 <= char_code <= 0x30FF:
                         if 0x3040 <= char_code <= 0x309F:
                             # Kode hiragana adalah kode katakana - 96
@@ -108,50 +107,33 @@ class Parse():
                                 
 
     def segmentasiTeks(self, text, debug=False):
-        # testing beberapa kalimat
-        # text = "ウィキペディア（Ｗｉｋｉｐｅｄｉａ）は誰でも編集できるフリー百科事典です"
-        # text = "行ってきましたか"
-        # text = "あんたと話しました。なぜこんな風にかしら"
-        # text = "自分の両親をこんな風にを扱うなんて、彼は気が狂っているに違いない。"
-        # text = "こんな風に。こんなことがあるなんて"
-        # text = "再び、彼は放浪者となって、彼はある日、兄の家にたどり着いた。"
-        # text = "こんな、そんな、あんな"
-        # text = "アパートの壁が薄いので、隣の部屋の人のいびきまで聞こえてきて、気になって眠れない。"
-        # text = "私の両親は、田舎で農業を営んでいる"
-        # text = "聞こえる.聞こえない.聞こえます.聞こえません.聞こえた.聞こえなかった.聞こえました.聞こえませんでした.聞こえて.聞こえなくて.聞こえられる.聞こえられない.聞こえさせる.聞こえさせない.聞こえさせられる.聞こえさせられない.聞こえろ.聞こえるな"
-        # text = "切る.切らない.切ります.切った.切って.切られる.切れる.切らせる.切れば.切れ.切ろう"
-        # text = "食べる.食べない.食べます.食べません.食べた.食べなかった.食べました.食べませんでした.食べて.食べなくて.食べられる.食べられない.食べられる.食べられない.食べさせる.食べさせない.食べさせられる.食べさせられない.食べろ.食べるな"
-        # text = "聞えるんだよ"
-        # text = text
-        # print('Input : \n', text, '\n')
-        result = self.tagger.parse(text) #or parseNBest(n, text)
-        # print('Output : \n')
-        result = result.splitlines() #splitLines untuk pengelompokan tabel berdasarkan kata yang displit MeCab
+        # print()
+        # print('input text :', text)
+        result = self.tagger.parse(text)
+        # print()
+        # print('output MeCab (raw):')
+        # print(result)
+        # return
+        result = result.splitlines() 
 
-        # inisialisasi data untuk menampung hasil MeCab
+       
         data = []
-        # pengelompokan berdasarkan tabel output MeCab
         for line in result:
             values = line.split('\t') 
             if (values == ['EOS']):
                 continue
             data.append(values)
+        # print()
+        # print('output MeCab (array):')
+        # pprint(data)
+        # print()
+        # return
         if debug:
             pprint(data)
         
-        # if debug:
-        #     tester = ''
-        #     for d in range(len(data)):
-        #         tester += data[d][0] + ' '
-            
-        #     print(tester)
-        #     print()
-        #     exit()
 
         # inisialisasi sebelum dilakukan parsing
         conj = False
-        # dataiter = iter(data)
-        # next_data_row = None
         kelompokKata = [] # list semua kata
         tipeKonjugasi = [] # list tipe konjugasi (kelompok kata kerja)
         bentukKonjugasi = [] # list bentuk konjugasi (renyoukei, meireikei, dll)
@@ -161,7 +143,6 @@ class Parse():
         temp_katadasar = []
         bantuan = ''
         kanji = []
-        skip = False
         combine_count = 0
         prenoun = False
         combine_katadasar = False
@@ -368,7 +349,7 @@ class Parse():
                         if (('形容詞' in data[i][4] and ('名詞' in data[i+1][4] or '形容詞' in data[i+1][4] or '動詞' in data[i+1][4])) or
                             ('接続助詞' not in data[i+1][4] and not data[i+1][6])):
                             conj = False
-                            print(data[i][0])
+                            # print(data[i][0])
                         if ('五段' in data[i+1][5]):
                             conj = False
                             if ('ちゃう' in data[i+1][3]):
@@ -378,13 +359,13 @@ class Parse():
                     
                 # print(conj)
                 # what is this for????
-                try:
-                    if ('連体詞' in data[i][4]):
-                        conj = True
-                        if (('連体詞' in data[i][4] and  ('名詞' in data[i+1][4]))):
-                            conj = False
-                except Exception as e:
-                        pass
+                # try:
+                #     if ('連体詞' in data[i][4]):
+                #         conj = True
+                #         if (('連体詞' in data[i][4] and  ('名詞' in data[i+1][4]))):
+                #             conj = False
+                # except Exception as e:
+                #         pass
                 if debug:
                     print(conj)
                 # print(conj, inputKata, data[i][0])
@@ -432,10 +413,11 @@ class Parse():
                     print(conj)
                 # print(conj, inputKata, data[i][0])
                 # This below combine suffix like -sama, or -sha...
+                # '接尾辞' in data[i+1][4] or 
                 # but i think its better to separate them and search for specific suffix on jisho
                 try:
                     if (('非自立' in data[i+1][4] and not ('動詞' in data[i][4] or '形容詞' in data[i][4])) 
-                        or ((('接尾辞' in data[i+1][4] or '接続助詞' in data[i+1][4]) and not data[i+1][5]))):
+                        or ((('接続助詞' in data[i+1][4]) and not data[i+1][5]))):
                         conj = True 
                         combine_katadasar = True
                         
@@ -573,6 +555,19 @@ class Parse():
                         combine_katadasar = True
                 except Exception as e:
                     pass
+
+                ##kamus manual
+                try:
+                    if '萌える' in data[i][3] and ((data[i+1][4] != '助動詞' or  'デス' in data[i+1][5]) and not ('接続助詞' in data[i+1][4])):
+                        
+                        conj = False
+                        combine_katadasar = False
+                        katadasar = ['萌え', 'もえ']
+                except Exception as e:
+                    pass
+
+                if '推し' == data[i][0]:
+                    katadasar = ['推し', 'おし']
                 if '代名詞' in data[i][4] and 'てまえ' in data[i][3]:
                     conj = False
                     combine_katadasar = False
@@ -812,6 +807,9 @@ class Parse():
                         conj = False
                         inputKata = True
                     if 'から' in data[i+1][3] and not ('だ' in data[i][3]):
+                        conj = False
+                        inputKata = True
+                    if 'デス' in data[i+1][5]:
                         conj = False
                         inputKata = True
                     
@@ -1134,7 +1132,7 @@ if (__name__ == "__main__"):
     # print(f'{filepath}')
     # print(filepath)
     parse = Parse()
-    a = parse.segmentasiTeks("読んで", debug=False)
+    a = parse.segmentasiTeks("娘ちゃんクイズ", debug=True)
     # a = parse.convKanaRo('イー','romaji')
     # a = ['','助動詞']
     # if ('助詞' in a[1]):
