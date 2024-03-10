@@ -65,13 +65,6 @@
        </widget>
       </item>
       <item alignment="Qt::AlignHCenter">
-       <widget class="QCheckBox" name="checkDiffLang">
-        <property name="text">
-         <string>Bedakan kedua bahasa</string>
-        </property>
-       </widget>
-      </item>
-      <item alignment="Qt::AlignHCenter">
        <widget class="QLabel" name="label">
         <property name="text">
          <string>Pilih bahasa kamus :</string>
@@ -99,6 +92,13 @@
        </widget>
       </item>
       <item alignment="Qt::AlignHCenter">
+       <widget class="QCheckBox" name="checkDiffLang">
+        <property name="text">
+         <string>Samakan Bahasa</string>
+        </property>
+       </widget>
+      </item>
+      <item alignment="Qt::AlignHCenter">
        <widget class="QPushButton" name="startBtn">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -113,7 +113,7 @@
          </size>
         </property>
         <property name="text">
-         <string>Start</string>
+         <string>Mulai</string>
         </property>
        </widget>
       </item>

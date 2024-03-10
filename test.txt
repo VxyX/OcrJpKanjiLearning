@@ -1,0 +1,2 @@
+
+2024-02-05 02:14:29 => Uncaught exception: <class 'NameError'> | name 'gui' is not defined | <traceback object at 0x000002084C183200>

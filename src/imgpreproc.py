@@ -1,8 +1,8 @@
 import sys
 from PyQt5 import uic
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap, QImageReader, QImage, QShowEvent
-from PyQt5.QtWidgets import  QApplication, QMainWindow, QLabel, QSlider, QVBoxLayout, QWidget, QPushButton, QFileDialog
+from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtWidgets import  QApplication, QMainWindow
 import cv2
 import os
 
@@ -17,8 +17,9 @@ class ImProc(QMainWindow):
         self.threshold_value = self.thresholdSlider.value()
         self.isShow = False
         self.isMenu = False
+        self.initImg = None
         # self.imgProcLabel.setScaledContents(True)
-        self.file_path = 'preprocimg.png'
+        self.file_path = 'imgpreprocimg.png'
         img_path = kwarg.get("img_path")
         # print(img_path)
         if img_path is not None:
@@ -44,7 +45,12 @@ class ImProc(QMainWindow):
 
 
         # first image shown to UI 
-        self.showImg(self.initImg)
+        try:
+            if self.initImg:
+                self.showImg(self.initImg)
+        except: 
+            if self.initImg.any():
+                self.showImg(self.initImg)
         
     def isShown(self):
         return self.isShow
@@ -86,10 +92,20 @@ class ImProc(QMainWindow):
         pass
 
     def resizeEvent(self, event):
-        self.rescale_pixmap()
+        try:
+            if self.initImg:
+                self.rescale_pixmap()
+        except:
+            if self.initImg.any():
+                self.rescale_pixmap()
         
     def showEvent(self, event) -> None:
-        self.rescale_pixmap()
+        try:
+            if self.initImg:
+                self.rescale_pixmap()
+        except:
+            if self.initImg.any():
+                self.rescale_pixmap()
         self.isShow = True
         pass
 

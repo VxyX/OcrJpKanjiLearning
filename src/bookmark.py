@@ -2,10 +2,8 @@ import sqlite3
 import sys
 from ast import literal_eval
 from pprint import pprint
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QSizePolicy, QFrame
-from PyQt5 import uic
+from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QSizePolicy, QFrame
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFontDatabase
 from parsing import Parse
 
 class BookmarkDB():
@@ -17,6 +15,10 @@ class BookmarkDB():
         self.conn = None
         try:
             self.conn = sqlite3.connect("src/db/bookmark.db")
+            sql = "PRAGMA foreign_keys=ON;"
+            c = self.conn.cursor()
+            c.execute(sql)
+            self.conn.commit()
         except Exception as e:
             pass
 
@@ -163,7 +165,7 @@ class BookmarkDB():
         if self.conn:
             conn = self.conn
         try:
-            sql = "DELETE FROM tabel_kata WHERE id_kata=?"
+            sql = "DELETE FROM tabel_kata WHERE id_kata=?;"
             c = conn.cursor()
             c.execute(sql, (id_kata,))
             conn.commit()

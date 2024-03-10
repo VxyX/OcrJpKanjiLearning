@@ -1,7 +1,6 @@
-import typing
 from PyQt5.QtGui import QCloseEvent
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QVBoxLayout, QFrame
-from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, QUrl
 from ast import literal_eval
@@ -15,7 +14,6 @@ from txtscreen import TextScreen
 from jisho import Kamus
 from bookmark import BookmarkDB, BookmarkWidget
 from parsing import Parse
-import os
 
 
 class BookmarkPage(QWidget):
@@ -24,6 +22,7 @@ class BookmarkPage(QWidget):
         super(BookmarkPage, self).__init__()
 
         self.mainAppRun = True
+        self.isActive = False
         self.isShown = False
 
         self.widgets = []
@@ -75,7 +74,7 @@ class BookmarkPage(QWidget):
         dat = len(self.id_kata)
         while i < dat:
             if self.checkData[i].isChecked():
-                print(self.id_kata[i])
+                # print(self.id_kata[i])
                 self.db.delete_bookmark(self.id_kata[i])
                 self.widgets[i].deleteLater()
                 del self.widgets[i]
@@ -85,7 +84,7 @@ class BookmarkPage(QWidget):
                 dat = dat - 1
             i = i + 1
             pass
-        print(len(self.checkData), len(self.id_kata), len(self.widgets))
+        # print(len(self.checkData), len(self.id_kata), len(self.widgets))
         pass
     
     def kembaliBtnEv(self):
@@ -104,9 +103,9 @@ class BookmarkPage(QWidget):
             temp = self.db.cari_kata(jishodat[0], jishodat[1], bahasa)
         else:
             temp = self.db.cari_kata(jishodat[1], jishodat[1], bahasa)
-        print(jishodat[0])
+        # print(jishodat[0])
         if temp:
-            print(temp[0][0])
+            # print(temp[0][0])
             # id_kata, kata, hiragana, romaji, makna = temp
             i = 0
             dat = len(self.id_kata)
@@ -117,10 +116,10 @@ class BookmarkPage(QWidget):
                     del self.checkData[i]
                     del self.id_kata[i]
                     i = i - 1
-                    print('disini')
+                    # print('disini')
                     dat = dat - 1
                 i = i + 1
-                print(i)
+                # print(i)
 
             self.db.delete_bookmark(temp[0][0])
             # self.tambahWidget(id_kata, kata, hiragana, romaji, makna)
@@ -313,7 +312,7 @@ class BookmarkPage(QWidget):
             self.hapusBtn.setEnabled(True)
         else:
             self.hapusBtn.setEnabled(False)
-        print(len(self.checkData), len(self.id_kata), len(self.widgets))
+        # print(len(self.checkData), len(self.id_kata), len(self.widgets))
         pass
     
     def tampilBookmark(self):
@@ -326,10 +325,15 @@ class BookmarkPage(QWidget):
         pass
 
     def closeEvent(self, event:QCloseEvent) -> None:
-        self.isShown = False
-        self.hide()
-        event.ignore()
+        if self.mainAppRun:
+            self.isShown = False
+            self.hide()
+            event.ignore()
+        else:
+            return super().closeEvent(event)
         pass
+
+
 
     def cek_kata(self, jishodat, bahasa):
         if jishodat[0]:
@@ -351,6 +355,10 @@ class TranslatePage(QWidget):
         uic.loadUi("src/gui/mainuiWidget/TranslateWidget.ui", self)
 
         self.isStart = False
+        self.mainAppRun = False
+        self.kamusPage = None
+        self.txtScreen = None
+        self.screenshot = None
         self.bookmarkPage = bookmarkPage
 
         # 
@@ -387,41 +395,39 @@ class TranslatePage(QWidget):
                 return
             
             self.isStart = True
-            self.startBtn.setText("Stop")
-            
-            # print('click')
-            # Thread(target=self.screen.show()).start()
-            # Thread(target=self.textScreen.show()).start()
+            self.startBtn.setText("Berhenti")
         else:
             self.isStart = False
             
             self.txtScreen.clearTxt()
             self.screenshot.closeScreen()
-            self.startBtn.setText("Start")
-            # Thread(target=self.screen.close()).start()
-            # Thread(target=self.textScreen.close()).start()
+            self.kamusPage = None
+            self.txtScreen = None
+            self.screenshot = None
+            self.startBtn.setText("Mulai")
             return
         
     def cekBedaBahasa(self, state):
         if state == 2:  # Qt.Checked
             # print('Checkbox dicentang')
-            self.dicLang.setEnabled(True)
-        else:
-            # print('Checkbox tidak dicentang')
             i = self.transLang.currentIndex()
             self.dicLang.setCurrentIndex(i)
             # print(i)
             self.dicLang.setEnabled(False)
+        else:
+            self.dicLang.setEnabled(True)
+            # print('Checkbox tidak dicentang')
+            
     
     def cekBahasaKamus(self, index):
         # print(self.trasLang.currentData())
         self.kamus_lang = self.dicLang.currentData()
-        print(self.kamus_lang)
+        # print(self.kamus_lang)
 
     def cekBahasaTerjemahan(self, index):
         # print(self.trasLang.currentData())
         self.translate_lang = self.transLang.currentData()
-        print(self.translate_lang)
+        # print(self.translate_lang)
         if (self.checkDiffLang.checkState() == 0):
             if self.transLang.currentIndex() == 2:
                 pass
@@ -429,10 +435,11 @@ class TranslatePage(QWidget):
                 self.dicLang.setCurrentIndex(index)
 
     def close(self) -> bool:
-        self.txtScreen.fclose = True
-        self.kamusPage.close()
-        self.txtScreen.close()
-        self.screenshot.close()
+        if self.kamusPage:
+            self.txtScreen.fclose = True
+            self.kamusPage.close()
+            self.txtScreen.close()
+            self.screenshot.close()
         return super().close()
 ################## Translate Menu ##################
 
@@ -449,6 +456,7 @@ if __name__ == "__main__":
     jisho_dat = '''['泳ぐ', 'およぐ', ['jlpt-n5'], [[[], [["godan verb with 'gu' ending", 'v5g'], ['intransitive verb', 'vi']], ['to swim']], [[], [["godan verb with 'gu' ending", 'v5g'], ['intransitive verb', 'vi']], ['to struggle through (a crowd)']], [[], [["godan verb with 'gu' ending", 'v5g'], ['intransitive verb', 'vi']], ["to make one's way through the world", 'to get along (in life)']], [[], [["godan verb with 'gu' ending", 'v5g'], ['intransitive verb', 'vi']], ['to totter', "to lose one's balance"]]]]'''
     a = BookmarkPage()
     a.show()
+    print(a.isActiveWindow())
     # a.tambahBookmark(literal_eval(jisho_dat), 'id')
     # a.hapusBookmark(literal_eval(jisho_dat), 'id')
     

@@ -1,7 +1,6 @@
-import typing
 from PyQt5.QtGui import QCloseEvent
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget
-from PyQt5 import QtCore, uic
+from PyQt5.QtWidgets import QMainWindow, QApplication
+from PyQt5 import uic
 import sys
 
 import menu
@@ -12,7 +11,6 @@ class MainUi(QMainWindow):
 
         # initialize
         self.isStart = False
-        self.screen = None
         self.bmIsShow = False
 
         # load .ui file
@@ -45,11 +43,15 @@ class MainUi(QMainWindow):
             pass
         else:
             self.bmPage.show()
-            self.bmPage.isShown = True
+            self.bmPage.isActive = True
+            self.bmPage.mainAppRun = True
+            self.isShown = True
         pass
 
     def closeEvent(self, a0: QCloseEvent) -> None:
-        self.bmPage.close()
+        if self.bmPage.isActive:
+            self.bmPage.mainAppRun = False
+            self.bmPage.close()
         self.tlPage.close()
         return super().closeEvent(a0)
 
@@ -59,6 +61,30 @@ class MainUi(QMainWindow):
     
     
 if (__name__ == "__main__"):
+    print(__name__)
+    import logging
+    import datetime
+    logging.basicConfig(filename='err.log',
+                    filemode='a',
+                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%H:%M:%S',
+                    level=logging.WARNING)
+    logger = logging.getLogger(__name__)
+    handler = logging.StreamHandler(stream=sys.stdout)
+    logger.addHandler(handler)
+    now = datetime.datetime.now()
+    # print(now.strftime("%Y-%m-%d %H:%M:%S"))
+    def handle_exception(exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+
+        logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+        with open("err.log", 'a') as my_file:
+            my_file.write('\n\n')
+
+    sys.excepthook = handle_exception
     app = QApplication(sys.argv)
     gui = MainUi()
+    # gui[0]=0
     app.exec_()

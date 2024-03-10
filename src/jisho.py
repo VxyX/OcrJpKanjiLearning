@@ -1,6 +1,5 @@
 from __future__ import annotations
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QVBoxLayout, QHBoxLayout
-from PyQt5 import uic
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtCore import Qt, QUrl, pyqtSlot
@@ -8,14 +7,6 @@ from bs4 import BeautifulSoup
 from pprint import pprint #debugging
 import sys
 import requests
-import xml.etree.ElementTree as ET
-import os
-import svgwrite
-import tkinter as tk
-from PIL import Image, ImageTk
-import io
-from svg.path import parse_path
-from pprint import pprint
 
 
 from parsing import Parse
@@ -41,6 +32,7 @@ class Kamus(QWidget):
         self.part_of_speech = None
         self.jlpt_lv = None
         self.jisho_dat = None
+        self.tooglebukmarkOnetime = False
 
         self.tag1_dict = {
             "usually written using kana alone": 'uk'
@@ -147,7 +139,7 @@ class Kamus(QWidget):
         self.setLayout(self.winLayout)
         # self.show()
         # self.show()
-        self.content.loadFinished.connect(self.toogleBookmark)
+        # self.content.loadFinished.connect(self.toogleBookmark)
         pass
 
     def mousePressEvent(self, event):
@@ -186,24 +178,26 @@ class Kamus(QWidget):
                 bookmark = channel.objects.bookmark;
             });
 
-            checkbox = document.getElementById('myCheckbox');
+            const checkbox = document.getElementById('myCheckbox');
             checkbox.addEventListener('change', (event) => {
             if (event.currentTarget.checked) {
                 console.log('checked');
                 bookmark.addToBookmark('checked');
                 checkbox.disabled = true;
-                document.getElementById('add-bookmark').classList.add('fade');
                 setTimeout(function(){
+                    document.getElementById('add-bookmark').classList.add('fade');
                     checkbox.disabled = false;
                     },2000);
+                document.getElementById('add-bookmark').classList.remove('fade');
             } else {
                 console.log('not checked');
                 bookmark.removeFromBookmark('unchecked');
                 checkbox.disabled = true;
-                document.getElementById('remove-bookmark').classList.add('fade');
                 setTimeout(function(){
+                    document.getElementById('remove-bookmark').classList.add('fade');
                     checkbox.disabled = false;
                     },2000);
+                document.getElementById('remove-bookmark').classList.remove('fade');
             }
             })
             """
@@ -542,7 +536,10 @@ class Kamus(QWidget):
                 js += """document.getElementById("myCheckbox").checked = false;"""
         self.content.page().runJavaScript(js)
 
-        self.toogleBookmark(True)
+        if not self.tooglebukmarkOnetime:
+            self.toogleBookmark(True)
+            self.tooglebukmarkOnetime = True
+            
 
         if self.kamus_lang == 'both':
             kata2 = kata
@@ -685,8 +682,8 @@ class CustomWebEnginePage(QWebEnginePage):
     # override print console js untuk debugging
     def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
         # Override the JavaScriptConsoleMessage method
-        print(f"JavaScript Console Message: Level {level}, Message: {message}, Line Number: {lineNumber}, Source ID: {sourceID}")
-
+        # print(f"JavaScript Console Message: Level {level}, Message: {message}, Line Number: {lineNumber}, Source ID: {sourceID}")
+        pass
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

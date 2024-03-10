@@ -2,6 +2,8 @@ import pytesseract
 from PIL import Image
 import os
 import cv2
+import logging
+import sys
 
 class Ocr():
     def __init__(self, image=None):
@@ -20,29 +22,50 @@ class Ocr():
         # print('\n\n\nimage file name :',self.img)
 
     def getText(self, img=None):
-        if not img:
-            img = self.img
-        image = Image.open(img)
-        lang = 'jpn'
-        
-        text = pytesseract.image_to_string(image, lang, config=self.config)
-        # print(img)
+        try:
+            if not img:
+                img = self.img
+            image = Image.open(img)
+            lang = 'jpn'
+            
+            text = pytesseract.image_to_string(image, lang, config=self.config)
+            print('text : ',text,'\n')
+
+            # print(img)
+        except Exception as e:
+            text = 'Ocr Error'
+            try:
+                logging.basicConfig(filename='err.log',
+                        filemode='a',
+                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                        datefmt='%x : %X',
+                        level=logging.WARNING)
+                logger = logging.getLogger(__name__)
+                handler = logging.StreamHandler(stream=sys.stdout)
+                logger.addHandler(handler)
+                logger.error("Uncaught exception "+__file__+":\n"+str(e)+"")
+                with open("err.log", 'a') as my_file:
+                    my_file.write('\n\n')
+            except Exception as e:
+                print(e)
+            pass
+        pass
         return text
     
-    def imgPreProcessing(self):
-        img = cv2.imread(self.img)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        ret,thresh1 = cv2.threshold(img,179,255,cv2.THRESH_BINARY)
-        inverted_image = cv2.bitwise_not(thresh1)
-        no_noise_inv = self.noise_removal(inverted_image)
-        no_noise = self.noise_removal(thresh1)
-        # dilated_image = self.thick_font(no_noise_inv)
-        # cv2.imwrite("dilated_image.jpg", dilated_image)
-        cv2.imwrite("no_noise_inv.jpg", no_noise_inv)
-        cv2.imwrite("no_noise.jpg", no_noise)
-        cv2.imwrite("inverted.jpg", inverted_image)
-        cv2.imwrite("bw.jpg", thresh1)
-        return None
+    # def imgPreProcessing(self):
+    #     img = cv2.imread(self.img)
+    #     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    #     ret,thresh1 = cv2.threshold(img,179,255,cv2.THRESH_BINARY)
+    #     inverted_image = cv2.bitwise_not(thresh1)
+    #     no_noise_inv = self.noise_removal(inverted_image)
+    #     no_noise = self.noise_removal(thresh1)
+    #     # dilated_image = self.thick_font(no_noise_inv)
+    #     # cv2.imwrite("dilated_image.jpg", dilated_image)
+    #     cv2.imwrite("no_noise_inv.jpg", no_noise_inv)
+    #     cv2.imwrite("no_noise.jpg", no_noise)
+    #     cv2.imwrite("inverted.jpg", inverted_image)
+    #     cv2.imwrite("bw.jpg", thresh1)
+    #     return None
         pass
     
     def thick_font(self, image):

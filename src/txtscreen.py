@@ -1,9 +1,7 @@
-import typing
-from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtWidgets import QMainWindow, QApplication, QTextBrowser
-from PyQt5.QtCore import QObject, QUrl, pyqtSlot, Qt, QEvent, QPoint, QRect, QThread, pyqtSignal
+from PyQt5.QtCore import QUrl, pyqtSlot, Qt, QEvent, QPoint, QRect, QThread, pyqtSignal
 from PyQt5 import uic
 from pprint import pprint
 from bs4 import BeautifulSoup
@@ -144,9 +142,12 @@ class TextScreen(QMainWindow):
         #     self.jpTxt.loadFinished.connect(lambda ok: self.tlTxt2.setText(tlTxt2) if ok else None)
  
         # self.showTxt()
+        # print(jpTxt)
         js = f"""
+            console.log('tes');
             document.getElementById("jp_txt").innerHTML = '{jpTxt}';
         """
+        print()
         self.jpTxt.page().runJavaScript(js)
         self.tlTxt.setText(tlTxt)
         if self.tl_lang == 'both':
@@ -177,6 +178,9 @@ class TextScreen(QMainWindow):
         # if not img:
         #     img = 'screenshot.png'
         # capture = Ocr(img)
+        if jpText == 'Ocr Error':
+            self.setText(jpText, '')
+            return
         parse = Parse()
         self.dataKamus = {}
         self.threads = {}
@@ -294,6 +298,8 @@ class TextScreen(QMainWindow):
 
                 #iterate each letter for applying furigana better
                 for letter in w_list:
+                    if furigana == 'romaji':
+                        break
                     
                     # this will skip if the current letter not matching the temp word letter
                     # this helps to fix problems if theres more than 1 letter/kanji inside temp word/kanji
@@ -332,11 +338,13 @@ class TextScreen(QMainWindow):
                         if furigana == 'hiragana':
                             rt['class'] = 'reading hiragana'
                             rt.append(parse.convKanaRo(temp_read[k_index], 'hiragana'))
-                        elif furigana == 'romaji':
-                            rt['class'] = 'reading romaji'
-                            rt.append(parse.convKanaRo(temp_read[k_index], 'romaji'))
+                            # print(temp_read[k_index])
+                        # elif furigana == 'romaji':
+                        #     rt['class'] = 'reading romaji'
+                        #     rt.append(parse.convKanaRo(temp_read[k_index], 'romaji'))
                         w.append(rb)
                         w.append(rt)
+                        # print(w)
 
                         # after furigana created, delete the current word on the list
                         # replacing temp_word is important
@@ -351,17 +359,17 @@ class TextScreen(QMainWindow):
                             w.append(letter)
                             con = True
                             temp_word = temp_word.replace(letter,'',1)
-                        elif furigana == 'romaji':
-                            rb = self.jpHtml.new_tag("rb")
-                            rb['class'] = 'kana'
-                            rb.append(letter)
-                            rt = self.jpHtml.new_tag("rt")
-                            rt['class'] = 'reading romaji'
-                            rt.append(parse.convKanaRo(letter, 'romaji'))
-                            w.append(rb)
-                            w.append(rt)
-                            temp_word = temp_word.replace(letter,'',1)
-                            pass
+                        # elif furigana == 'romaji':
+                        #     rb = self.jpHtml.new_tag("rb")
+                        #     rb['class'] = 'kana'
+                        #     rb.append(letter)
+                        #     rt = self.jpHtml.new_tag("rt")
+                        #     rt['class'] = 'reading romaji'
+                        #     rt.append(parse.convKanaRo(letter, 'romaji'))
+                        #     w.append(rb)
+                        #     w.append(rt)
+                        #     temp_word = temp_word.replace(letter,'',1)
+                        #     pass
 
                 # if the last letters iteration are not kanji,
                 # this will close the rb tag with rt tag,
@@ -369,6 +377,32 @@ class TextScreen(QMainWindow):
                     rt = self.jpHtml.new_tag("rt")
                     w.append(rt)
                     con = False
+                
+                if furigana == 'romaji':
+                    tmp = ''
+                    tmpbool = False
+                    rb = self.jpHtml.new_tag("rb")
+                    rb['class'] = 'kana'
+                    rb.append(kata)
+                    rt = self.jpHtml.new_tag("rt")
+                    rt['class'] = 'reading romaji'
+                    for char in kata:
+                        for i,char2 in enumerate(word[1][0]):
+                            if char == char2:
+                                if tmp:
+                                    rt.append(parse.convKanaRo(tmp, 'romaji'))
+                                    tmp = ''
+                                rt.append(parse.convKanaRo(word[1][1][i], 'romaji'))
+                                tmpbool = True
+                        if tmpbool:
+                            tmpbool = False
+                            continue
+                        tmp += char
+                    if tmp:
+                        rt.append(parse.convKanaRo(tmp, 'romaji'))
+                        tmp = ''
+                    w.append(rb)
+                    w.append(rt)
 
                 existing_classes = jpP.get('class')
                 jpP['class'] = existing_classes + " furigana"
@@ -402,9 +436,23 @@ class TextScreen(QMainWindow):
                     rb.append(kata)
                     rt = self.jpHtml.new_tag("rt")
                     rt['class'] = 'reading romaji'
-                    rt.append(parse.convKanaRo(kata, 'reading romaji'))
+                    rt.append(parse.convKanaRo(kata, 'romaji'))
                     w.append(rb)
                     w.append(rt)
+                    existing_classes = jpP.get('class')
+                    jpP['class'] = existing_classes + " furigana"
+                    jpP.append(w)
+                    pass
+                elif furigana == 'romaji2':
+                    for char in kata:
+                        rb = self.jpHtml.new_tag("rb")
+                        rb['class'] = 'kana'
+                        rb.append(char)
+                        rt = self.jpHtml.new_tag("rt")
+                        rt['class'] = 'reading romaji'
+                        rt.append(parse.convKanaRo(char, 'romaji'))
+                        w.append(rb)
+                        w.append(rt)
                     existing_classes = jpP.get('class')
                     jpP['class'] = existing_classes + " furigana"
                     jpP.append(w)
@@ -462,7 +510,6 @@ class TextScreen(QMainWindow):
         if ok:
             js = """
             // objek harus diinisialisasi untuk menghubungkan fungsi py ke js
-            
             
             new QWebChannel(qt.webChannelTransport, function (channel) {
                 pyweb = channel.objects.pyweb;
@@ -542,8 +589,6 @@ class TextScreen(QMainWindow):
                     rects.push(rect);
                         
                     pyweb.tampilDetailKata(japaneseWord, [rect.right, rect.bottom, rect.left, rect.top], kanji, reading, lemma, tipeKonjugasiData, bentukKonjugasiData, kelasData, indeksKataData);
-
-                    console.log('tes');
                     
                 });
             });
@@ -557,7 +602,7 @@ class TextScreen(QMainWindow):
     # jika ingin passing dengan class, makah class harus menginherit QObject
     @pyqtSlot(str, list, str, str, str, str, str, str, str)
     def tampilDetailKata(self, word, rect, kanji, reading, lemma_dat, conj_dat, conj_form_dat, class_dat, indeks):        
-        # print('word : ', word, '\nkanji : ', kanji, '\nreading : ', reading, '\nlemma : ', lemma_dat, '\nconj_dat : ', conj_dat, '\nconj_form : ', conj_form_dat, '\nclass_dat : ', class_dat, '\nindex : ', indeks, '\n')
+        print('word : ', word, '\nkanji : ', kanji, '\nreading : ', reading, '\nlemma : ', lemma_dat, '\nconj_dat : ', conj_dat, '\nconj_form : ', conj_form_dat, '\nclass_dat : ', class_dat, '\nindex : ', indeks, '\n')
         # return
         kanji = kanji.split(',')
         lemma_dat = lemma_dat.split(',') # [kanji, reading]
@@ -598,7 +643,8 @@ class CustomWebEnginePage(QWebEnginePage):
     def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
         # Override the JavaScriptConsoleMessage method
         print(f"JavaScript Console Message: Level {level}, Message: {message}, Line Number: {lineNumber}, Source ID: {sourceID}")
-
+        pass
+    
 # multi-thread untuk meminta data kamus tanpa menunggu satu per satu data selesai
 class CallApiThread(QThread):
 
@@ -634,11 +680,12 @@ class TranslateThread(QThread):
         if self.tl_lang == 'both':
             txt1 = self.tl_func(self.jp_txt, 'id')
             txt2 = self.tl_func(self.jp_txt, 'en')
-            self.set_text.emit(self.jpDiv, (txt1, txt2))
+            self.set_text.emit(self.jpDiv, (txt1, txt2,))
             pass
         else:
             txt = self.tl_func(self.jp_txt, self.tl_lang)
-            self.set_text.emit(self.jpDiv, (txt))
+            # print(txt)
+            self.set_text.emit(self.jpDiv, (txt,))
         # time.sleep(0.05)
         pass
 
@@ -649,8 +696,8 @@ class TranslateThread(QThread):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    screen = TextScreen(Kamus(None), tl_lang='both')
+    screen = TextScreen(Kamus(None), tl_lang='en')
     
-    screen.txtProcessing('萌えは無限の可能性', furigana='hiragana')
+    screen.txtProcessing('私はいつものジョギングの代わりに、 ひと泳ぎしようと思いまして。', furigana='hiragana')
     screen.show()
     app.exec_()

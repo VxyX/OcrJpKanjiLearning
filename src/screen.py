@@ -1,8 +1,5 @@
-import typing
 import pyautogui
 import time
-import threading
-import multiprocessing
 from PyQt5.QtWidgets import QMainWindow, QApplication, QSizeGrip
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
@@ -15,6 +12,7 @@ from imgpreproc import ImProc
 from ocr import Ocr
 
 from pprint import pprint
+import logging
 
 class ScreenCapture(QMainWindow):
     def __init__(self, txtScreen : TextScreen):
@@ -23,6 +21,7 @@ class ScreenCapture(QMainWindow):
         # load file
         self.uifile = "src/gui/screenCapture copy.ui"
         self.stylefile = "src/style/screenshot.qss"
+        self.logging = logging
         self.textScreen = txtScreen
         self.imgProcScreen = ImProc()
         self.imgProcScreenShow = False
@@ -211,7 +210,7 @@ class ScreenCapture(QMainWindow):
             # print(self.imgProcScreen.isEnabled_())
             if self.imgProcScreen.isEnabled_():
                 self.imgProcScreen.processImg('imgpreproc.png')
-                self.runningThread = OcrThread(self.ocr, 'imgpreproc.png')
+                self.runningThread = OcrThread(self.ocr, 'processedimg.png')
                 self.runningThread.jpTxt.connect(self.ocrThreadSet)
                 self.runningThread.finished.connect(lambda: self.ocrThreadFinished(self.jpTxt))
                 self.runningThread.start()
@@ -223,7 +222,22 @@ class ScreenCapture(QMainWindow):
                 self.runningThread.finished.connect(lambda: self.ocrThreadFinished(self.jpTxt))
                 self.runningThread.start()
         except Exception as e:
-            print(e)
+            
+            try:
+                logging.basicConfig(filename='err.log',
+                        filemode='a',
+                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                        datefmt='%x : %X',
+                        level=logging.WARNING)
+                logger = logging.getLogger(__name__)
+                handler = logging.StreamHandler(stream=sys.stdout)
+                logger.addHandler(handler)
+                logger.error("Uncaught exception "+__file__+":\n"+str(e)+"")
+                with open("err.log", 'a') as my_file:
+                    my_file.write('\n\n')
+            except Exception as e:
+                print(e)
+            pass
         pass
       
     def tampilPreprocessImg(self) :
@@ -237,6 +251,7 @@ class ScreenCapture(QMainWindow):
 
     def ocrThreadSet(self, jpTxt):
         self.jpTxt = jpTxt
+        # print(jpTxt)
 
     def ocrThreadFinished(self, jpTxt):
         self.textScreen.txtProcessing(jpTxt)
